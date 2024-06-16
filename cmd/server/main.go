@@ -4,12 +4,18 @@
 // - синхронизация данных между несколькими авторизованными клиентами одного владельца;
 // - передача приватных данных владельцу по запросу.
 
-package server
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Print("Hello World")
+}
 
 //todo хранить логины, пароли, бинарные данные и прочую приватную информацию.
 
 // endpoints
-// - registration
+// - login
 // - auth
 // - save all
 // - get all

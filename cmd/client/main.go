@@ -1,23 +1,18 @@
-// Клиент должен реализовывать следующую бизнес-логику:
-//	- аутентификация и авторизация пользователей на удалённом сервере;
-//	- доступ к приватным данным по запросу.
+package main
 
-package client
+import (
+	"fmt"
+	"github.com/gam6itko/goph-keeper/internal/client/tui/root"
+	"os"
 
-//todo -help with version and build date
+	tea "github.com/charmbracelet/bubbletea"
+)
 
-// register
-// login
-// set master password
+func main() {
+	p := tea.NewProgram(root.NewScreen(), tea.WithAltScreen())
 
-// --- with meta information
-// save credentials
-// save text
-// save bin
-// save card
-// save the planet!
-
-// exit
-
-//todo обмен rsa ключами
-// store and sync
+	if _, err := p.Run(); err != nil {
+		fmt.Println("Error running program:", err)
+		os.Exit(1)
+	}
+}
