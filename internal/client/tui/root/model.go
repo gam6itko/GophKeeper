@@ -4,6 +4,8 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common"
+	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
+	"log"
 )
 
 var buildVersion = "0.0.0"
@@ -39,12 +41,13 @@ type Model struct {
 
 func New() *Model {
 	return &Model{
-		state: stateIdle,
+		state:   stateIdle,
+		current: newRootMenu(fmt.Sprintf("GophKeeper. Version: %s. Build: %s", buildVersion, buildDate), 0, 0),
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return gotoRootMenuCmd
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -58,14 +61,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		if m.current == nil {
-			if child, ok := m.current.(common.IWindowSizeAware); ok {
-				child.SetSize(m.width, m.height)
-			}
-		}
-		if m.state == stateIdle {
-			return m, gotoRootMenuCmd
-		}
 
 	case gotoRootMenuMsg:
 		m.state = stateOnRootMenu
@@ -74,6 +69,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.width,
 			m.height,
 		)
+		return m, m.current.Init()
 
 	case gotoLoginMsg:
 		m.state = stateOnLoginScreen
@@ -85,6 +81,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.current = newRegistrationForm()
 		return m, m.current.Init()
 
+	case form.SubmitMsg:
+		switch m.state {
+		case stateOnLoginScreen:
+			log.Printf("submit login")
+			//todo check user-pass
+			//todo server.sendLogin
+			//todo hadle err or  goto private
+		case stateOnRegistrationScreen:
+			log.Printf("submit reg")
+			//todo check user-pass
+			//todo server.sendRegistration
+			//show success message or error
+			return m, gotoRootMenuCmd
+		}
+
+	case form.CancelMsg:
+		return m, gotoRootMenuCmd
+	}
+
+	if m.current == nil {
+		return m, nil
 	}
 
 	var cmd tea.Cmd
