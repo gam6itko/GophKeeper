@@ -10,7 +10,7 @@ const (
 	TypeLoginPass = iota
 	TypeText
 	TypeBinary
-	ypeBankCard
+	TypeBankCard
 )
 
 type LoginDTO struct {
