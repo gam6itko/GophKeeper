@@ -42,7 +42,6 @@ type IPrivateStorage interface {
 	Store(ctx context.Context, dto PrivateDataDTO) error
 }
 
-
 type IServer interface {
 	ILoginServer
 	IRegistrationServer
