@@ -15,8 +15,17 @@ type (
 	// gotoRegistrationMsg управляющая модель должна отобразить форму регистрации.
 	gotoRegistrationMsg struct{}
 
-	// privateListMsg отобразить список всех сохранённых данных.
-	privateListMsg struct{}
+	// gotoPrivateMenuMsg нужно вернуться в ЛК.
+	gotoPrivateMenuMsg struct{}
+	// privateListRequestMsg отобразить список всех сохранённых данных.
+	privateListRequestMsg  struct{}
+	privateListResponseMsg struct {
+		list []server.PrivateDataListItemDTO
+	}
+	privateDataLoadMsg struct {
+		id uint32
+	}
+
 	// privateLogoutMsg выйти из ЛК.
 	privateLogoutMsg struct{}
 	// Начать процедуру ввода новых данных.
@@ -57,7 +66,7 @@ func newPrivateMenu(title string, width, height int) tea.Model {
 	l := list.New(
 		[]list.Item{
 			common.NewCmdItem("List", "of stored entries", func() tea.Msg {
-				return privateListMsg{}
+				return privateListRequestMsg{}
 			}),
 			common.NewCmdItem("Store", "login password", func() tea.Msg {
 				return privateStoreMsg{t: server.TypeLoginPass}
@@ -75,6 +84,33 @@ func newPrivateMenu(title string, width, height int) tea.Model {
 				return privateLogoutMsg{}
 			}),
 		},
+		list.NewDefaultDelegate(),
+		width,
+		height,
+	)
+	l.Title = title
+
+	return cmd.New(l)
+}
+
+// newPrivateDataList создаёт меню со всеми имеющимися данными на сервере.
+// Пользователь может выбрать какие данные нужно загрузить и отобразить.
+func newPrivateDataList(title string, width, height int, privateList []server.PrivateDataListItemDTO) tea.Model {
+	items := make([]list.Item, len(privateList), len(privateList)+1)
+	for i, item := range privateList {
+		items[i] = common.NewCmdItem(item.Name, item.Type.String(), func() tea.Msg {
+			return privateDataLoadMsg{id: item.ID}
+		})
+	}
+	items = append(
+		items,
+		common.NewCmdItem("<- Exit", "Go to prev menu", func() tea.Msg {
+			return gotoPrivateMenuMsg{}
+		}),
+	)
+
+	l := list.New(
+		items,
 		list.NewDefaultDelegate(),
 		width,
 		height,

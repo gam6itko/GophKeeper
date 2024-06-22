@@ -158,7 +158,7 @@ func (m Model) View() string {
 	return b.String()
 }
 
-func (m *Model) updateInputs(msg tea.Msg) tea.Cmd {
+func (m Model) updateInputs(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
 	// Only text inputs with Focus() set will respond, so it's safe to simply

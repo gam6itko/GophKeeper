@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
+	"github.com/gam6itko/goph-keeper/internal/client/tui/masterkey"
 )
 
 const (
@@ -56,4 +57,20 @@ func newRegistrationForm() tea.Model {
 	}
 
 	return form.New(inputs, "Registration")
+}
+
+// newMasterKeyForm создать форму для ввода мастер-ключа, которым зашифрованы все данные.
+func newMasterKeyForm(successRetryMsg tea.Msg, prev tea.Model) tea.Model {
+	input := textinput.New()
+	input.Placeholder = "MasterKey"
+	input.CharLimit = 32
+	input.EchoMode = textinput.EchoPassword
+	input.EchoCharacter = '•'
+
+	inputs := []textinput.Model{
+		input,
+	}
+
+	f := form.New(inputs, "Enter MasterKey")
+	return masterkey.New(f, successRetryMsg, prev)
 }

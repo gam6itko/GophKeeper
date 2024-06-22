@@ -14,28 +14,11 @@ type (
 	}
 	CloseMsg struct{}
 
-	LoginResponseMsg struct {
-		Err error
+	ResponseResultMsg struct {
+		Success bool
+		Message string
 	}
 )
-
-func closeCmd() tea.Msg {
-	return CloseMsg{}
-}
-
-//type nextFunc func() (tea.Model, tea.Cmd)
-//
-//type DoneMsg struct {
-//	message string
-//	cmd    tea.Cmd
-//}
-//
-//func NewDoneMsg(message string, cmd Cmd) DoneMsg {
-//	return DoneMsg{
-//		message: message,
-//		cmd:    cmd,
-//	}
-//}
 
 type tState int
 
@@ -46,27 +29,28 @@ const (
 )
 
 type Model struct {
-	spinner spinner.Model
-	//Err      error
-	initCmd tea.Cmd
+	spinner      spinner.Model
+	initCmd      tea.Cmd
+	onSuccessCmd tea.Cmd
+	onFailCmd    tea.Cmd
 
 	state tState
-	prev  tea.Model
 
 	message string
 }
 
-func New(initCmd tea.Cmd, prev tea.Model) Model {
+func New(initCmd tea.Cmd, onSuccessCmd tea.Cmd, onFailCmd tea.Cmd) Model {
 	s := spinner.New()
-	s.Spinner = spinner.Hamburger
+	s.Spinner = spinner.Line
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	return Model{
-		spinner: s,
-		initCmd: initCmd,
+		spinner:      s,
+		initCmd:      initCmd,
+		onSuccessCmd: onSuccessCmd,
+		onFailCmd:    onFailCmd,
 
 		state: stateLoading,
-		prev:  prev,
 	}
 }
 
@@ -79,23 +63,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch m.state {
 		case stateSuccess:
-			return m, func() tea.Msg {
-				return SuccessMsg{}
-			}
+			return m, m.onSuccessCmd
 		case stateFail:
-			return m, func() tea.Msg {
-				return FailMsg{GoToModel: m.prev}
-			}
+			return m, m.onFailCmd
 		}
 
-	case LoginResponseMsg:
-		if msg.Err == nil {
+	case ResponseResultMsg:
+		if msg.Success {
 			m.state = stateSuccess
-			m.message = "Login successful"
 		} else {
 			m.state = stateFail
-			m.message = msg.Err.Error()
 		}
+		m.message = msg.Message
 	}
 
 	var cmd tea.Cmd
@@ -105,7 +84,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	if m.state != stateLoading {
-		return fmt.Sprintf("\n\n  Error: %s\n   Press any key to continue.\n\n", m.message)
+		return fmt.Sprintf("\n\n   %s\n   Press any key to continue.\n\n", m.message)
 	}
 
 	return fmt.Sprintf("\n\n   %s Waiting for response...\n\n", m.spinner.View())
