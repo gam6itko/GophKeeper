@@ -1,10 +1,13 @@
 package root
 
 import (
+	"context"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gam6itko/goph-keeper/internal/client/server"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
+	"github.com/gam6itko/goph-keeper/internal/client/tui/loading"
 	"log"
 )
 
@@ -19,15 +22,13 @@ const (
 
 var windowSize common.WindowSize
 
-//type exitMsg struct{}
-
 type appState int
 
 const (
 	stateIdle appState = iota
 	stateOnRootMenu
-	stateOnLoginScreen
-	stateOnRegistrationScreen
+	stateOnLoginFrom
+	stateOnRegistrationForm
 	stateStorePrivateData
 	stateLoadPrivate
 )
@@ -35,14 +36,20 @@ const (
 type Model struct {
 	width, height int
 
+	prev    tea.Model
 	current tea.Model
 	state   appState
+
+	server     server.IServer
+	cancelFunc *context.CancelFunc
 }
 
-func New() *Model {
+func New(server server.IServer) *Model {
 	return &Model{
 		state:   stateIdle,
 		current: newRootMenu(fmt.Sprintf("GophKeeper. Version: %s. Build: %s", buildVersion, buildDate), 0, 0),
+
+		server: server,
 	}
 }
 
@@ -72,23 +79,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.current.Init()
 
 	case gotoLoginMsg:
-		m.state = stateOnLoginScreen
+		m.state = stateOnLoginFrom
 		m.current = newLoginForm()
 		return m, m.current.Init()
 
 	case gotoRegistrationMsg:
-		m.state = stateOnRegistrationScreen
+		m.state = stateOnRegistrationForm
 		m.current = newRegistrationForm()
 		return m, m.current.Init()
 
 	case form.SubmitMsg:
+		ctx, fnCancel := context.WithCancel(context.Background())
+		m.cancelFunc = &fnCancel
+
 		switch m.state {
-		case stateOnLoginScreen:
+		case stateOnLoginFrom:
+			model := loading.New(
+				func() tea.Msg {
+					err := m.server.Login(
+						ctx,
+						server.LoginDTO{
+							Username: msg.Values[LoginFormUsernameIndex],
+							Password: msg.Values[LoginFormPasswordIndex],
+						},
+					)
+					return loading.LoginResponseMsg{Err: err}
+				},
+				m.current,
+			)
+			m.prev = m.current
+			m.current = model
+			return m, m.current.Init()
+
 			log.Printf("submit login")
 			//todo check user-pass
 			//todo server.sendLogin
 			//todo hadle err or  goto private
-		case stateOnRegistrationScreen:
+		case stateOnRegistrationForm:
 			log.Printf("submit reg")
 			//todo check user-pass
 			//todo server.sendRegistration

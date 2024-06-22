@@ -34,10 +34,17 @@ type ILoginServer interface {
 }
 
 type IRegistrationServer interface {
-	Register(ctx context.Context, dto RegistrationDTO) error
+	Registration(ctx context.Context, dto RegistrationDTO) error
 }
 
 type IPrivateStorage interface {
-	Load(ctx context.Context, id uint32) (PrivateDataDTO, error)
+	Load(ctx context.Context, id uint32) (*PrivateDataDTO, error)
 	Store(ctx context.Context, dto PrivateDataDTO) error
+}
+
+
+type IServer interface {
+	ILoginServer
+	IRegistrationServer
+	IPrivateStorage
 }

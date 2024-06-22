@@ -5,10 +5,12 @@ import (
 	"time"
 )
 
-type MockLoginHandler struct{}
+var _ IServer = &MockServer(nil)
 
-func (m *MockLoginHandler) Login(ctx context.Context, username string, password string) error {
-	t := time.NewTicker(time.Second)
+type MockServer struct{}
+
+func (m *MockServer) Login(ctx context.Context, dto LoginDTO) error {
+	t := time.NewTicker(2 * time.Second)
 	select {
 	case <-ctx.Done():
 		return context.Canceled
@@ -17,10 +19,29 @@ func (m *MockLoginHandler) Login(ctx context.Context, username string, password 
 	}
 }
 
-type MockRegistrationHandler struct{}
+func (m *MockServer) Registration(ctx context.Context, dto RegistrationDTO) error {
+	t := time.NewTicker(2 * time.Second)
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	case <-t.C:
+		return nil
+	}
+}
 
-func (m *MockRegistrationHandler) Register(ctx context.Context, username string, password string) error {
-	t := time.NewTicker(time.Second)
+func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, error) {
+	result := &PrivateDataDTO{}
+
+	t := time.NewTicker(2 * time.Second)
+	select {
+	case <-ctx.Done():
+		return nil, context.Canceled
+	case <-t.C:
+		return result, nil
+	}
+}
+func (m *MockServer) Store(ctx context.Context, dto PrivateDataDTO) error {
+	t := time.NewTicker(2 * time.Second)
 	select {
 	case <-ctx.Done():
 		return context.Canceled

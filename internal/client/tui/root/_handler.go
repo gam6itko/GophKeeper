@@ -25,7 +25,7 @@ func NewLoginHandler(prev tea.Model, next tea.Model, server server.ILoginServer)
 func (ths LoginHandler) Handle(username string, password string) (tea.Model, tea.Cmd) {
 	ctx, fnCancel := context.WithCancel(context.Background())
 
-	s := loading.NewScreen(
+	s := loading.New(
 		func() tea.Msg {
 			if err := ths.server.Login(ctx, username, password); err != nil {
 				return loading.NewDoneMsg(
@@ -66,7 +66,7 @@ func NewRegistrationHandler(prev tea.Model, next tea.Model, server server.IRegis
 func (ths RegistrationHandler) Handle(username string, password string) (tea.Model, tea.Cmd) {
 	ctx, fnCancel := context.WithCancel(context.Background())
 
-	s := loading.NewScreen(
+	s := loading.New(
 		func() tea.Msg {
 			if err := ths.server.Register(ctx, username, password); err != nil {
 				return loading.NewDoneMsg(

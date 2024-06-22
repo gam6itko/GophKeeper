@@ -20,7 +20,7 @@ var (
 
 type (
 	SubmitMsg struct {
-		values map[int]string
+		Values map[int]string
 	}
 	CancelMsg struct{}
 )
@@ -80,7 +80,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 
 					return SubmitMsg{
-						values: values,
+						Values: values,
 					}
 				}
 			case m.cancelBtnIndex:

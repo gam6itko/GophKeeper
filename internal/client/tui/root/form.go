@@ -6,6 +6,16 @@ import (
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
 )
 
+const (
+	RegFormUsernameIndex = iota
+	RegFormPasswordIndex
+)
+
+const (
+	LoginFormUsernameIndex = iota
+	LoginFormPasswordIndex
+)
+
 func newLoginForm() tea.Model {
 	username := textinput.New()
 	username.Placeholder = "Username"
