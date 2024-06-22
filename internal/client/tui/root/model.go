@@ -123,6 +123,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, gotoRootMenuCmd
 		}
 
+	case loading.SuccessMsg:
+		if m.state == stateOnLoginFrom {
+			return m, gotoRootMenuCmd
+		}
+
 	case form.CancelMsg:
 		return m, gotoRootMenuCmd
 	}

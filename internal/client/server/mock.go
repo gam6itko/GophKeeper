@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-var _ IServer = &MockServer(nil)
+var _ IServer = (*MockServer)(nil)
 
 type MockServer struct{}
 

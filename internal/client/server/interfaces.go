@@ -29,21 +29,11 @@ type PrivateDataDTO struct {
 	meta     map[string]string
 }
 
-type ILoginServer interface {
-	Login(ctx context.Context, dto LoginDTO) error
-}
-
-type IRegistrationServer interface {
+type IServer interface {
 	Registration(ctx context.Context, dto RegistrationDTO) error
-}
 
-type IPrivateStorage interface {
+	Login(ctx context.Context, dto LoginDTO) error
+
 	Load(ctx context.Context, id uint32) (*PrivateDataDTO, error)
 	Store(ctx context.Context, dto PrivateDataDTO) error
-}
-
-type IServer interface {
-	ILoginServer
-	IRegistrationServer
-	IPrivateStorage
 }

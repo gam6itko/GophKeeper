@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	s := server.MockServer{}
+	s := &server.MockServer{}
 	p := tea.NewProgram(root.New(s), tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {
