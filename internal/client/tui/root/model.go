@@ -7,8 +7,9 @@ import (
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey"
 	"github.com/gam6itko/goph-keeper/internal/client/server"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common"
+	"github.com/gam6itko/goph-keeper/internal/client/tui/common/errmsg"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
-	"github.com/gam6itko/goph-keeper/internal/client/tui/loading"
+	"github.com/gam6itko/goph-keeper/internal/client/tui/common/loading"
 	masterkey_form "github.com/gam6itko/goph-keeper/internal/client/tui/masterkey"
 	"log"
 )
@@ -20,6 +21,18 @@ const (
 	loginOption = iota
 	registrationOption
 	exitOption
+)
+
+type (
+	// serverRequestSuccessMsg какой-то запрос к серверу завершился удачей.
+	serverRequestSuccessMsg struct {
+		gotoModel tea.Model
+	}
+	// serverRequestErrorMsg какой-то запрос к серверу завершился неудачей.
+	serverRequestErrorMsg struct {
+		gotoModel tea.Model
+		err       error
+	}
 )
 
 var windowSize common.WindowSize
@@ -107,7 +120,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch m.state {
 		// ... на форме входа в систему.
 		case stateOnLoginFrom:
-			prev := m.current
+			gotoModelFail := m.current
 			m.current = loading.New(
 				func() tea.Msg {
 					err := m.server.Login(
@@ -118,22 +131,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						},
 					)
 					if err == nil {
-						return loading.ResponseResultMsg{
-							Success: true,
-							Message: "Login successful",
+						return loading.DoneCmd{
+							Cmd: func() tea.Msg {
+								return serverRequestSuccessMsg{
+									gotoModel: newPrivateMenu("Private menu", m.width, m.height),
+								}
+							},
 						}
 					} else {
-						return loading.ResponseResultMsg{
-							Success: false,
-							Message: fmt.Sprintf("Error. %s", err),
+						return loading.DoneCmd{
+							Cmd: func() tea.Msg {
+								return serverRequestErrorMsg{
+									err:       err,
+									gotoModel: gotoModelFail,
+								}
+							},
 						}
 					}
-				},
-				func() tea.Msg {
-					return loading.SuccessMsg{}
-				},
-				func() tea.Msg {
-					return loading.FailMsg{GoToModel: prev}
 				},
 			)
 			return m, m.current.Init()
@@ -146,25 +160,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, gotoRootMenuCmd
 		}
 
-	// Запрос к серверу прошёл успешно.
-	case loading.SuccessMsg:
-		switch m.state {
-		case stateOnLoginFrom:
-			m.state = stateOnPrivateMenu
-			m.cancelFunc = nil
-			m.current = newPrivateMenu("Private menu", m.width, m.height)
-			return m, m.current.Init()
+	case serverRequestSuccessMsg:
+		m.current = msg.gotoModel
+		return m, nil
 
-		case stateOnRegistrationForm:
-			//return m, m.current.Init()
-		}
+	case serverRequestErrorMsg:
+		m.current = errmsg.New(msg.err, msg.gotoModel)
+		return m, nil
 
-	// Запрос к серверу завершился ошибкой.
-	case loading.FailMsg:
-		model := msg.GoToModel
-		m.current = model
-		m.cancelFunc = nil
-		return m, model.Init()
+	case errmsg.GotoModelMsg:
+		m.current = msg.Model
+		return m, nil
 
 	// Отмена ввода в форме.
 	case form.CancelMsg:
@@ -175,11 +181,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case gotoPrivateMenuMsg:
 		m.current = newPrivateMenu("Private menu", m.width, m.height)
 		return m, m.current.Init()
+
 	// Пользователь захотел посмотреть список данных имеющихся на сервере.
 	case privateListRequestMsg:
 		ctx, cancelFunc := context.WithCancel(context.Background())
 		m.cancelFunc = &cancelFunc
 
+		gotoModelFail := m.current
 		m.current = loading.New(
 			func() tea.Msg {
 				list, err := m.server.List(ctx)
@@ -188,15 +196,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						list: list,
 					}
 				} else {
-					return loading.ResponseResultMsg{
-						Success: false,
-						Message: fmt.Sprintf("Error. %s", err),
+					return serverRequestErrorMsg{
+						err:       err,
+						gotoModel: gotoModelFail,
 					}
 				}
-			},
-			gotoRootMenuCmd,
-			func() tea.Msg {
-				return loading.FailMsg{GoToModel: m.current}
 			},
 		)
 		return m, m.current.Init()
@@ -227,25 +231,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		ctx, cancelFunc := context.WithCancel(context.Background())
 		m.cancelFunc = &cancelFunc
 
-		prev := m.current
+		gotoModelFail := m.current
 		m.current = loading.New(
 			func() tea.Msg {
 				err := m.server.Logout(ctx)
 				if err == nil {
-					return loading.ResponseResultMsg{
-						Success: true,
-						Message: "Logout successful",
+					return loading.DoneCmd{
+						Cmd: gotoRootMenuCmd,
 					}
 				} else {
-					return loading.ResponseResultMsg{
-						Success: false,
-						Message: fmt.Sprintf("Error. %s", err),
+					return loading.DoneCmd{
+						Cmd: func() tea.Msg {
+							return serverRequestErrorMsg{
+								err:       err,
+								gotoModel: gotoModelFail,
+							}
+						},
 					}
 				}
-			},
-			gotoRootMenuCmd,
-			func() tea.Msg {
-				return loading.FailMsg{GoToModel: prev}
 			},
 		)
 		return m, m.current.Init()
