@@ -6,20 +6,20 @@ import (
 )
 
 type (
-	GotoModelMsg struct {
-		Model tea.Model
-	}
+//	GotoModelMsg struct {
+//		Model tea.Model
+//	}
 )
 
 type Model struct {
 	err       error
-	gotoModel tea.Model
+	returnCmd tea.Cmd
 }
 
-func New(err error, gotoModel tea.Model) *Model {
+func New(err error, returnCmd tea.Cmd) *Model {
 	return &Model{
 		err:       err,
-		gotoModel: gotoModel,
+		returnCmd: returnCmd,
 	}
 }
 
@@ -30,11 +30,7 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyMsg:
-		return m, func() tea.Msg {
-			return GotoModelMsg{
-				Model: m.gotoModel,
-			}
-		}
+		return m, m.returnCmd
 	}
 
 	return m, nil

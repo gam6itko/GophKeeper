@@ -60,7 +60,7 @@ func newRegistrationForm() tea.Model {
 }
 
 // newMasterKeyForm создать форму для ввода мастер-ключа, которым зашифрованы все данные.
-func newMasterKeyForm(successRetryMsg tea.Msg, prev tea.Model) tea.Model {
+func newMasterKeyForm(successRetryCmd tea.Cmd, prev tea.Model) tea.Model {
 	input := textinput.New()
 	input.Placeholder = "MasterKey"
 	input.CharLimit = 32
@@ -72,5 +72,5 @@ func newMasterKeyForm(successRetryMsg tea.Msg, prev tea.Model) tea.Model {
 	}
 
 	f := form.New(inputs, "Enter MasterKey")
-	return masterkey.New(f, successRetryMsg, prev)
+	return masterkey.New(f, successRetryCmd, prev)
 }

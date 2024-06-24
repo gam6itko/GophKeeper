@@ -5,12 +5,6 @@ import (
 	"github.com/awnumar/memguard"
 )
 
-type IStorage interface {
-	Has() bool
-	Load() ([]byte, error)
-	Store([]byte) error
-}
-
 type MemGuardStorage struct {
 	enclave *memguard.Enclave
 }
@@ -38,10 +32,16 @@ func (ths *MemGuardStorage) Load() ([]byte, error) {
 	}
 	defer b.Destroy()
 
+	b.Melt()
+
 	return b.Bytes(), nil
 }
 
 func (ths *MemGuardStorage) Store(key []byte) error {
+	if len(key) < 3 {
+		return errors.New("key too short")
+	}
+
 	ths.enclave = memguard.NewEnclave(key)
 
 	return nil

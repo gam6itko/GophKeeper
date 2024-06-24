@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"github.com/gam6itko/goph-keeper/internal/client/masterkey/encrypt"
+	"log"
 	"time"
 )
 
@@ -41,29 +43,38 @@ func (m *MockServer) Registration(ctx context.Context, dto RegistrationDTO) erro
 
 func (m *MockServer) List(ctx context.Context) ([]PrivateDataListItemDTO, error) {
 	loginPass := PrivateDataListItemDTO{
-		ID:   1,
-		Name: "LoginPass",
-		Type: TypeLoginPass,
-		Meta: "this is login pass",
+		BasePrivateDataDTO: BasePrivateDataDTO{
+			ID:   1,
+			Name: "LoginPass",
+			Type: TypeLoginPass,
+			Meta: "this is login pass",
+		},
 	}
 	text := PrivateDataListItemDTO{
-		ID:   2,
-		Name: "Text",
-		Type: TypeText,
-		Meta: "this is text",
+		BasePrivateDataDTO: BasePrivateDataDTO{
+			ID:   2,
+			Name: "Text",
+			Type: TypeText,
+			Meta: "this is text",
+		},
 	}
 	binary := PrivateDataListItemDTO{
-		ID:   3,
-		Name: "Binary",
-		Type: TypeBinary,
-		Meta: "this is binary",
+		BasePrivateDataDTO: BasePrivateDataDTO{
+			ID:   3,
+			Name: "Binary",
+			Type: TypeBinary,
+			Meta: "this is binary",
+		},
 	}
 	bankCard := PrivateDataListItemDTO{
-		ID:   4,
-		Name: "BankCard",
-		Type: TypeBankCard,
-		Meta: "this is bank card",
+		BasePrivateDataDTO: BasePrivateDataDTO{
+			ID:   4,
+			Name: "BankCard",
+			Type: TypeBankCard,
+			Meta: "this is bank card",
+		},
 	}
+
 	return []PrivateDataListItemDTO{
 		loginPass,
 		text,
@@ -73,7 +84,70 @@ func (m *MockServer) List(ctx context.Context) ([]PrivateDataListItemDTO, error)
 }
 
 func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, error) {
-	result := &PrivateDataDTO{}
+	c := encrypt.NewAESCrypt()
+
+	key := c.KeyFit([]byte("123"))
+	sign := "WTF"
+
+	var result *PrivateDataDTO
+	switch id {
+	case 1:
+		data, err := c.Encrypt(key, []byte(sign+"_login_password"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		result = &PrivateDataDTO{
+			BasePrivateDataDTO: BasePrivateDataDTO{
+				ID:   1,
+				Name: "LoginPass",
+				Type: TypeLoginPass,
+				Meta: "this is login pass",
+			},
+			Data: data,
+		}
+	case 2:
+		data, err := c.Encrypt(key, []byte(sign+"_text"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		result = &PrivateDataDTO{
+			BasePrivateDataDTO: BasePrivateDataDTO{
+				ID:   2,
+				Name: "Text",
+				Type: TypeText,
+				Meta: "this is text",
+			},
+			Data: data,
+		}
+	case 3:
+		data, err := c.Encrypt(key, []byte(sign+"_binary"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		result = &PrivateDataDTO{
+			BasePrivateDataDTO: BasePrivateDataDTO{
+				ID:   3,
+				Name: "Binary",
+				Type: TypeBinary,
+				Meta: "this is binary",
+			},
+			Data: data,
+		}
+	case 4:
+		data, err := c.Encrypt(key, []byte(sign+"_bank_card"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		result = &PrivateDataDTO{
+			BasePrivateDataDTO: BasePrivateDataDTO{
+				ID:   4,
+				Name: "BankCard",
+				Type: TypeBankCard,
+				Meta: "this is bank card",
+			},
+			Data: data,
+		}
+	}
 
 	t := time.NewTicker(2 * time.Second)
 	select {

@@ -41,22 +41,21 @@ type RegistrationDTO struct {
 
 // BasePrivateDataDTO общая часть.
 type BasePrivateDataDTO struct {
+	ID   uint32
+	Name string
+	Type PrivateDataType
+	Meta string
 }
 
 // PrivateDataDTO данные пришли с сервера.
 type PrivateDataDTO struct {
-	Name string
-	Type PrivateDataType
-	Meta string
+	BasePrivateDataDTO
 	Data []byte
 }
 
 // PrivateDataListItemDTO строчка в списке данных на сервере.
 type PrivateDataListItemDTO struct {
-	ID   uint32
-	Name string
-	Type PrivateDataType
-	Meta string
+	BasePrivateDataDTO
 }
 
 type IServer interface {
