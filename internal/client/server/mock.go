@@ -41,7 +41,7 @@ func (m *MockServer) Registration(ctx context.Context, dto RegistrationDTO) erro
 	}
 }
 
-func (m *MockServer) List(ctx context.Context) ([]PrivateDataListItemDTO, error) {
+func (m *MockServer) List(_ context.Context) ([]PrivateDataListItemDTO, error) {
 	loginPass := PrivateDataListItemDTO{
 		BasePrivateDataDTO: BasePrivateDataDTO{
 			ID:   1,
@@ -84,15 +84,24 @@ func (m *MockServer) List(ctx context.Context) ([]PrivateDataListItemDTO, error)
 }
 
 func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, error) {
-	c := encrypt.NewAESCrypt()
+	enc := encrypt.NewAESCrypt()
 
-	key := c.KeyFit([]byte("123"))
+	key := enc.KeyFit([]byte("123"))
 	sign := "WTF"
 
 	var result *PrivateDataDTO
 	switch id {
 	case 1:
-		data, err := c.Encrypt(key, []byte(sign+"_login_password"))
+		dto := LoginPassDTO{Login: "user1", Password: "pass1"}
+		c := LoginPassEncoder{}
+		payload, err := c.Encode(dto)
+		if err != nil {
+			log.Fatal(err)
+		}
+		b := make([]byte, 0, len(sign)+len(payload))
+		b = append(b, sign...)
+		b = append(b, payload...)
+		data, err := enc.Encrypt(key, b)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -106,7 +115,8 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 			Data: data,
 		}
 	case 2:
-		data, err := c.Encrypt(key, []byte(sign+"_text"))
+		text := "you shouldn't see this"
+		data, err := enc.Encrypt(key, []byte(sign+text))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -120,7 +130,7 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 			Data: data,
 		}
 	case 3:
-		data, err := c.Encrypt(key, []byte(sign+"_binary"))
+		data, err := enc.Encrypt(key, []byte(sign+"_binary"))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -134,7 +144,7 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 			Data: data,
 		}
 	case 4:
-		data, err := c.Encrypt(key, []byte(sign+"_bank_card"))
+		data, err := enc.Encrypt(key, []byte(sign+"_bank_card"))
 		if err != nil {
 			log.Fatal(err)
 		}

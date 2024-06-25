@@ -98,8 +98,9 @@ func newPrivateMenu(title string, width, height int) tea.Model {
 func newPrivateDataList(title string, width, height int, privateList []server.PrivateDataListItemDTO) tea.Model {
 	items := make([]list.Item, len(privateList), len(privateList)+1)
 	for i, item := range privateList {
+		id := item.ID
 		items[i] = common.NewCmdItem(item.Name, item.Type.String(), func() tea.Msg {
-			return privateDataLoadMsg{id: item.ID}
+			return privateDataLoadMsg{id: id}
 		})
 	}
 	items = append(

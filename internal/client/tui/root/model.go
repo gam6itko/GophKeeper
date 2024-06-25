@@ -10,6 +10,7 @@ import (
 	"github.com/gam6itko/goph-keeper/internal/client/server"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/errmsg"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
+	"github.com/gam6itko/goph-keeper/internal/client/tui/common/info"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/loading"
 	masterkey_form "github.com/gam6itko/goph-keeper/internal/client/tui/masterkey"
 	"log"
@@ -217,11 +218,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			log.Fatal("invalid master key signature")
 		}
 
-		msg.dto.Data = data[3:]
+		data = data[3:]
 
 		switch msg.dto.Type {
 		case server.TypeLoginPass:
+			e := server.LoginPassEncoder{}
+			dto, err := e.Decode(data)
+			if err != nil {
+				log.Fatal("invalid login pass")
+			}
+			m.current = info.NewModel(
+				map[string]string{
+					"login":    dto.Login,
+					"password": dto.Password,
+				},
+				gotoPrivateMenuCmd,
+			)
+			return m, nil
+
 		case server.TypeText:
+			e := server.TextEncoder{}
+			text, err := e.Decode(data)
+			if err != nil {
+				log.Fatal("invalid text")
+			}
+			m.current = info.NewModel(
+				map[string]string{
+					"text": text,
+				},
+				gotoPrivateMenuCmd,
+			)
+			return m, nil
+
 		case server.TypeBinary:
 		case server.TypeBankCard:
 		}
@@ -298,11 +326,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								newPrivateMenu("Private menu", m.width, m.height),
 								stateOnPrivateMenu,
 							),
-							//Cmd: func() tea.Msg {
-							//	return serverRequestSuccessMsg{
-							//		gotoModelMsg: newPrivateMenu("Private menu", m.width, m.height),
-							//	}
-							//},
 						}
 					} else {
 						return loading.DoneCmd{
