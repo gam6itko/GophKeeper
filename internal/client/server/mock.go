@@ -1,9 +1,10 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey/encrypt"
-	"github.com/gam6itko/goph-keeper/internal/client/serialize"
 	"log"
 	"time"
 )
@@ -54,7 +55,7 @@ func (m *MockServer) List(_ context.Context) ([]PrivateDataListItemDTO, error) {
 	text := PrivateDataListItemDTO{
 		BasePrivateDataDTO: BasePrivateDataDTO{
 			ID:   2,
-			Name: "Text",
+			Name: "TextDTO",
 			Type: TypeText,
 			Meta: "this is text",
 		},
@@ -90,19 +91,21 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 	key := enc.KeyFit([]byte("123"))
 	sign := "WTF"
 
+	buff := bytes.NewBuffer([]byte("WTF"))
+	encoder := gob.NewEncoder(buff)
+
 	var result *PrivateDataDTO
 	switch id {
 	case 1:
-		dto := serialize.LoginPassDTO{Login: "user1", Password: "pass1"}
-		ser := serialize.LoginPass{}
-		payload, err := ser.Serialize(dto)
+		dto := LoginPassDTO{Sign: sign, Login: "user1", Password: "pass1"}
+		err := encoder.Encode(dto)
 		if err != nil {
 			log.Fatal(err)
 		}
-		b := make([]byte, 0, len(sign)+len(payload))
-		b = append(b, sign...)
-		b = append(b, payload...)
-		data, err := enc.Encrypt(key, b)
+		//b := make([]byte, 0, len(signTrait)+len(payload))
+		//b = append(b, signTrait...)
+		//b = append(b, payload...)
+		data, err := enc.Encrypt(key, buff.Bytes())
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -116,22 +119,31 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 			Data: data,
 		}
 	case 2:
-		text := "you shouldn't see this"
-		data, err := enc.Encrypt(key, []byte(sign+text))
+		dto := TextDTO{Sign: sign, Text: "you shouldn't see this"}
+		err := encoder.Encode(dto)
+		if err != nil {
+			log.Fatal(err)
+		}
+		data, err := enc.Encrypt(key, buff.Bytes())
 		if err != nil {
 			log.Fatal(err)
 		}
 		result = &PrivateDataDTO{
 			BasePrivateDataDTO: BasePrivateDataDTO{
 				ID:   2,
-				Name: "Text",
+				Name: "TextDTO",
 				Type: TypeText,
 				Meta: "this is text",
 			},
 			Data: data,
 		}
 	case 3:
-		data, err := enc.Encrypt(key, []byte(sign+"_binary"))
+		dto := BinaryDTO{Sign: sign, Data: []byte("123qweasdzxc_binary")}
+		err := encoder.Encode(dto)
+		if err != nil {
+			log.Fatal(err)
+		}
+		data, err := enc.Encrypt(key, buff.Bytes())
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -145,20 +157,20 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 			Data: data,
 		}
 	case 4:
-		dto := serialize.BankCardDTO{
+		dto := BankCardDTO{
+			Sign:    sign,
 			Number:  "4929175965841786",
 			Expires: "02/22",
 			CVV:     "123",
 		}
-		ser := serialize.BankCard{}
-		payload, err := ser.Serialize(dto)
+		err := encoder.Encode(dto)
 		if err != nil {
 			log.Fatal(err)
 		}
-		b := make([]byte, 0, len(sign)+len(payload))
-		b = append(b, sign...)
-		b = append(b, payload...)
-		data, err := enc.Encrypt(key, b)
+		//b := make([]byte, 0, len(signTrait)+len(payload))
+		//b = append(b, signTrait...)
+		//b = append(b, payload...)
+		data, err := enc.Encrypt(key, buff.Bytes())
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -16,3 +16,7 @@ func (ths *SimpleStorage) Store(bytes []byte) error {
 	ths.key = bytes
 	return nil
 }
+
+func (ths *SimpleStorage) Clear() {
+	ths.key = nil
+}

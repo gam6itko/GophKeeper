@@ -3,11 +3,12 @@ package root
 import (
 	"bytes"
 	"context"
+	"encoding/gob"
+	"errors"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey/encrypt"
-	"github.com/gam6itko/goph-keeper/internal/client/serialize"
 	"github.com/gam6itko/goph-keeper/internal/client/server"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/errmsg"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
@@ -15,14 +16,15 @@ import (
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/loading"
 	masterkey_form "github.com/gam6itko/goph-keeper/internal/client/tui/masterkey"
 	"log"
+	"os"
 )
 
 var buildVersion = "0.0.0"
 var buildDate = "never"
 
-// masterKeyCheckSign - 3 байта которые должны быть в расшифрованном местер-ключом сообщении.
-// Если данные не начинаются на эти 3 байта, то мастер ключ не верен.
-var masterKeyCheckSign = []byte("WTF")
+// masterKeyCheckSign - строка которая должна быть корректно в расшифрованна местер-ключом сообщении.
+// Если строки не идентичны, то мастер-ключ был указан неверно.
+var masterKeyCheckSign = "WTF"
 
 type (
 	gotoModelMsg struct {
@@ -128,6 +130,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.current.Init()
 
 	case gotoRootMenuMsg:
+		m.cancelFunc = nil
 		return m, newGotoModelCmd(
 			newRootMenu(
 				fmt.Sprintf("GophKeeper. Version: %s. Build: %s", buildVersion, buildDate),
@@ -144,10 +147,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, newGotoModelCmd(newRegistrationForm(), stateOnRegistrationForm)
 
 	case showErrorMsg:
+		m.cancelFunc = nil
 		m.current = errmsg.New(msg.err, newGotoModelCmd(msg.gotoModel, 0))
 		return m, nil
 
 	case gotoPrivateMenuMsg:
+		m.cancelFunc = nil
 		return m, newGotoModelCmd(
 			newPrivateMenu("Private menu", m.width, m.height),
 			stateOnPrivateMenu,
@@ -178,9 +183,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Пришёл ответ со списком всех имеющихся данных на сервере.
 	case privateListResponseMsg:
+		m.cancelFunc = nil
 		m.current = newPrivateDataList("Your private date. Click to view", m.width, m.height, msg.list)
 		return m, m.current.Init()
 
+	// Пользователь запросил данные с сервера. Отправляем запрос-ждм ответа.
 	case privateDataLoadMsg:
 		// Проверяем есть ли мастер-ключ. Если нет, то просим ввести.
 		if !m.storage.Has() {
@@ -188,7 +195,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.current.Init()
 		}
 
-		// Начинаем грузить с сервера приватные данные
+		// Начинаем грузить с сервера приватные данные.
 		ctx, cancelFunc := context.WithCancel(context.Background())
 		m.cancelFunc = &cancelFunc
 
@@ -211,26 +218,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 		return m, m.current.Init()
 
+	// Данные пришли с сервера. Декодируем и отображаем.
 	case showPrivateDataMsg:
-		data := m.decodeData(msg.dto.Data)
-		sign := data[:3]
-		// Если мастер-ключ верен, то префикс должен совпасть.
-		if !bytes.Equal(sign, masterKeyCheckSign) {
-			log.Fatal("invalid master key signature")
-		}
+		m.cancelFunc = nil
 
-		data = data[3:]
+		data := m.decodeData(msg.dto.Data)
+
+		buff := bytes.NewBuffer(data[3:])
+		decoder := gob.NewDecoder(buff)
 
 		switch msg.dto.Type {
 		case server.TypeLoginPass:
-			ser := serialize.LoginPass{}
-			dto, err := ser.Deserialize(data)
+			dto := server.LoginPassDTO{}
+			err := decoder.Decode(&dto)
 			if err != nil {
-				log.Fatal("invalid login pass")
+				log.Fatalf("login pass decode error: %s", err)
+			}
+			if dto.Sign != masterKeyCheckSign {
+				m.storage.Clear()
+				m.current = errmsg.New(errors.New("invalid master key"), gotoPrivateMenuCmd)
+				return m, nil
 			}
 			m.current = info.NewModel(
 				map[string]string{
-					"login":    dto.Login,
+					"login   ": dto.Login,
 					"password": dto.Password,
 				},
 				gotoPrivateMenuCmd,
@@ -238,40 +249,68 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case server.TypeText:
-			ser := serialize.Text{}
-			text, err := ser.Deserialize(data)
+			dto := server.TextDTO{}
+			err := decoder.Decode(&dto)
 			if err != nil {
-				log.Fatal("invalid text")
+				log.Fatalf("text decode error: %s", err)
+			}
+			if dto.Sign != masterKeyCheckSign {
+				m.storage.Clear()
+				m.current = errmsg.New(errors.New("invalid master key"), gotoPrivateMenuCmd)
+				return m, nil
 			}
 			m.current = info.NewModel(
 				map[string]string{
-					"text": text,
+					"text": dto.Text,
 				},
 				gotoPrivateMenuCmd,
 			)
 			return m, nil
 
+		// Скачанные двоичные данные просто сохраняем в файл.
+		//todo дать пользователю возможность ввести название файла куда сор+хранить.
 		case server.TypeBinary:
-		case server.TypeBankCard:
-			ser := serialize.BankCard{}
-			dto, err := ser.Deserialize(data)
+			dto := server.BinaryDTO{}
+			err := decoder.Decode(&dto)
 			if err != nil {
-				log.Fatal("invalid text")
+				log.Fatalf("binary decode fail. %s", err)
+			}
+			if dto.Sign != masterKeyCheckSign {
+				m.storage.Clear()
+				m.current = errmsg.New(errors.New("invalid master key"), gotoPrivateMenuCmd)
+				return m, nil
+			}
+
+			f, err := os.CreateTemp("/tmp", "*.bin")
+			_, err = f.Write(dto.Data)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			m.current = info.NewModel(
+				map[string]string{
+					"save to file": f.Name(),
+				},
+				gotoPrivateMenuCmd,
+			)
+			return m, nil
+
+		case server.TypeBankCard:
+			dto := server.BankCardDTO{}
+			err := decoder.Decode(&dto)
+			if err != nil {
+				log.Fatalf("bank card decode error: %s", err)
 			}
 			m.current = info.NewModel(
 				map[string]string{
-					"number":  dto.Number,
+					"number ": dto.Number,
 					"expires": dto.Expires,
-					"cvv":     dto.CVV,
+					"cvv    ": dto.CVV,
 				},
 				gotoPrivateMenuCmd,
 			)
 			return m, nil
 		}
-		//todo type switch
-		//  data decode
-		//	masterkey-ckecksum validate
-		//  gotoModel - type view
 
 		return m, nil
 
@@ -337,10 +376,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					)
 					if err == nil {
 						return loading.DoneCmd{
-							Cmd: newGotoModelCmd(
-								newPrivateMenu("Private menu", m.width, m.height),
-								stateOnPrivateMenu,
-							),
+							Cmd: gotoPrivateMenuCmd,
 						}
 					} else {
 						return loading.DoneCmd{
@@ -362,15 +398,44 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case stateOnRegistrationForm:
-		switch msg.(type) {
+		switch msg := msg.(type) {
 		case form.SubmitMsg:
-			//ctx, cancelFunc := context.WithCancel(context.Background())
-			//m.cancelFunc = &cancelFunc
-			//log.Printf("submit reg")
-			//todo check user-pass
-			//todo server.sendRegistration
-			//show success message or error
-			return m, gotoRootMenuCmd
+			ctx, cancelFunc := context.WithCancel(context.Background())
+			m.cancelFunc = &cancelFunc
+			gotoModelFail := m.current
+			m.current = loading.New(
+				func() tea.Msg {
+					err := m.server.Registration(
+						ctx,
+						server.RegistrationDTO{
+							Username: msg.Values[RegFormUsernameIndex],
+							Password: msg.Values[RegFormPasswordIndex],
+						},
+					)
+					if err == nil {
+						//todo отображать сообщение можно покрасивее.
+						model := info.NewModel(
+							map[string]string{
+								"message": "Registration success. You can login now",
+							},
+							gotoRootMenuCmd,
+						)
+						return loading.DoneCmd{
+							Cmd: newGotoModelCmd(model, 0),
+						}
+					} else {
+						return loading.DoneCmd{
+							Cmd: func() tea.Msg {
+								return showErrorMsg{
+									err:       err,
+									gotoModel: gotoModelFail,
+								}
+							},
+						}
+					}
+				},
+			)
+			return m, m.current.Init()
 		// Отмена ввода в форме.
 		case form.CancelMsg:
 			return m, gotoRootMenuCmd

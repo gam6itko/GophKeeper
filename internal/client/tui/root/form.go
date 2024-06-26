@@ -1,10 +1,12 @@
 package root
 
 import (
+	"errors"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/masterkey"
+	"regexp"
 )
 
 const (
@@ -17,12 +19,20 @@ const (
 	LoginFormPasswordIndex
 )
 
+var reLogin = regexp.MustCompile("^[a-zA-Z0-9]+$")
+
 func newLoginForm() tea.Model {
 	username := textinput.New()
 	username.Placeholder = "Username"
 	username.CharLimit = 32
 	username.CharLimit = 64
 	username.Focus()
+	username.Validate = func(s string) error {
+		if !reLogin.MatchString(s) {
+			return errors.New("invalid username")
+		}
+		return nil
+	}
 
 	password := textinput.New()
 	password.Placeholder = "Password"
@@ -44,6 +54,12 @@ func newRegistrationForm() tea.Model {
 	username.CharLimit = 32
 	username.CharLimit = 64
 	username.Focus()
+	username.Validate = func(s string) error {
+		if !reLogin.MatchString(s) {
+			return errors.New("invalid username")
+		}
+		return nil
+	}
 
 	password := textinput.New()
 	password.Placeholder = "Password"

@@ -1,4 +1,4 @@
-package serialize
+package server
 
 import (
 	"github.com/stretchr/testify/require"
@@ -48,21 +48,4 @@ func TestBankCardDTO_Validate(t *testing.T) {
 		require.Error(t, err)
 		require.EqualError(t, err, "invalid CVV")
 	})
-}
-
-func TestBankCard_Serialize(t *testing.T) {
-	dto := BankCardDTO{
-		Number:  "4929175965841786",
-		Expires: "02/22",
-		CVV:     "123",
-	}
-
-	ser := BankCard{}
-	b, err := ser.Serialize(dto)
-	require.NoError(t, err)
-	require.NotEmpty(t, b)
-
-	dto2, err := ser.Deserialize(b)
-	require.NoError(t, err)
-	require.Equal(t, dto, dto2)
 }
