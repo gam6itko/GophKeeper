@@ -28,9 +28,9 @@ type (
 
 	// privateLogoutMsg выйти из ЛК.
 	privateLogoutMsg struct{}
-	// Начать процедуру ввода новых данных.
-	privateStoreMsg struct {
-		t server.PrivateDataType
+	// privateStoreStartMsg - начать процедуру ввода новых данных.
+	privateStoreStartMsg struct {
+		dataType server.PrivateDataType
 	}
 )
 
@@ -69,16 +69,16 @@ func newPrivateMenu(title string, width, height int) tea.Model {
 				return privateListRequestMsg{}
 			}),
 			common.NewCmdItem("Store", "login password", func() tea.Msg {
-				return privateStoreMsg{t: server.TypeLoginPass}
+				return privateStoreStartMsg{dataType: server.TypeLoginPass}
 			}),
 			common.NewCmdItem("Store", "text", func() tea.Msg {
-				return privateStoreMsg{t: server.TypeText}
+				return privateStoreStartMsg{dataType: server.TypeText}
 			}),
 			common.NewCmdItem("Store", "binary", func() tea.Msg {
-				return privateStoreMsg{t: server.TypeBinary}
+				return privateStoreStartMsg{dataType: server.TypeBinary}
 			}),
 			common.NewCmdItem("Store", "bank card", func() tea.Msg {
-				return privateStoreMsg{t: server.TypeBankCard}
+				return privateStoreStartMsg{dataType: server.TypeBankCard}
 			}),
 			common.NewCmdItem("Logout", "", func() tea.Msg {
 				return privateLogoutMsg{}
@@ -105,7 +105,7 @@ func newPrivateDataList(title string, width, height int, privateList []server.Pr
 	}
 	items = append(
 		items,
-		common.NewCmdItem("<- Exit", "Go to prev menu", func() tea.Msg {
+		common.NewCmdItem("<- Go Back", "Go to prev menu", func() tea.Msg {
 			return gotoPrivateMenuMsg{}
 		}),
 	)

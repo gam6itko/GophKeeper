@@ -7,12 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type (
-	DoneCmd struct {
-		Cmd tea.Cmd
-	}
-)
-
+// Model - отображает загрузку пока не выполнится initCmd.
 type Model struct {
 	spinner spinner.Model
 	initCmd tea.Cmd
@@ -36,11 +31,6 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case DoneCmd:
-		return m, msg.Cmd
-	}
-
 	var cmd tea.Cmd
 	m.spinner, cmd = m.spinner.Update(msg)
 	return m, cmd

@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey/encrypt"
+	"github.com/gam6itko/goph-keeper/internal/client/private"
 	"github.com/gam6itko/goph-keeper/internal/client/server"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/errmsg"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
@@ -27,6 +28,7 @@ var buildDate = "never"
 var masterKeyCheckSign = "WTF"
 
 type (
+	// gotoModelMsg нужно отобразить на экране другую модель.
 	gotoModelMsg struct {
 		// model которая будет отображена на экране.
 		model tea.Model
@@ -34,9 +36,12 @@ type (
 		newState appState
 	}
 
+	// showErrorMsg - нужно отобразить сообщение об ошибке.
 	showErrorMsg struct {
-		gotoModel tea.Model
-		err       error
+		// err ошибка
+		err error
+		// cmd которую нужно выполнить когда пользователь прочитал ошибку и решил идти дальше.
+		cmd tea.Cmd
 	}
 
 	showPrivateDataMsg struct {
@@ -45,6 +50,7 @@ type (
 )
 
 var (
+	// newCmd обертка чтобы отправить msg.
 	newCmd = func(msg tea.Msg) tea.Cmd {
 		return func() tea.Msg {
 			return msg
@@ -61,21 +67,35 @@ var (
 	gotoPrivateMenuCmd = func() tea.Msg {
 		return gotoPrivateMenuMsg{}
 	}
+
+	newShowErrCmd = func(err error, cmd tea.Cmd) tea.Cmd {
+		return func() tea.Msg {
+			return showErrorMsg{
+				err: err,
+				cmd: cmd,
+			}
+		}
+	}
 )
 
 type appState int
 
 const (
+	// stateUndefined - состояние не указано.
+	// Нужно чтобы newGotoModelCmd не менять текущее состояние.
 	stateUndefined appState = iota
 	stateStartup
 	stateOnRootMenu
 	stateOnLoginFrom
 	stateOnPrivateMenu
 	stateOnRegistrationForm
-	stateStorePrivateData
-	stateLoadPrivate
+	stateStoreLoginPass
+	stateStoreText
+	stateStoreBinary
+	stateStoreBankCard
 )
 
+// Model - самая главная модель этой программы.
 type Model struct {
 	server  server.IServer
 	storage masterkey.IStorage
@@ -146,11 +166,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case gotoRegistrationMsg:
 		return m, newGotoModelCmd(newRegistrationForm(), stateOnRegistrationForm)
 
+	// Велено отобразить ошибку и отправить команду при закрытии.
 	case showErrorMsg:
 		m.cancelFunc = nil
-		m.current = errmsg.New(msg.err, newGotoModelCmd(msg.gotoModel, 0))
+		m.current = errmsg.New(msg.err, msg.cmd)
 		return m, nil
 
+	// Велено идти в ЛК пользователя.
 	case gotoPrivateMenuMsg:
 		m.cancelFunc = nil
 		return m, newGotoModelCmd(
@@ -173,8 +195,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				} else {
 					return showErrorMsg{
-						err:       err,
-						gotoModel: gotoModelFail,
+						err: err,
+						cmd: newGotoModelCmd(gotoModelFail, 0),
 					}
 				}
 			},
@@ -204,16 +226,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			func() tea.Msg {
 				dto, err := m.server.Load(ctx, dataID)
 				if err == nil {
-					return loading.DoneCmd{
-						Cmd: func() tea.Msg {
-							return showPrivateDataMsg{dto}
-						},
-					}
-				} else {
-					return loading.DoneCmd{
-						Cmd: gotoPrivateMenuCmd,
-					}
+					return showPrivateDataMsg{dto}
 				}
+				return gotoPrivateMenuMsg{}
 			},
 		)
 		return m, m.current.Init()
@@ -223,7 +238,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cancelFunc = nil
 
 		data := m.decodeData(msg.dto.Data)
-
 		buff := bytes.NewBuffer(data[3:])
 		decoder := gob.NewDecoder(buff)
 
@@ -324,18 +338,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			func() tea.Msg {
 				err := m.server.Logout(ctx)
 				if err == nil {
-					return loading.DoneCmd{
-						Cmd: gotoRootMenuCmd,
-					}
-				} else {
-					return loading.DoneCmd{
-						Cmd: func() tea.Msg {
-							return showErrorMsg{
-								err:       err,
-								gotoModel: gotoModelFail,
-							}
-						},
-					}
+					return gotoRootMenuMsg{}
+				}
+				return showErrorMsg{
+					err: err,
+					cmd: newGotoModelCmd(gotoModelFail, 0),
 				}
 			},
 		)
@@ -344,7 +351,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case masterkey_form.SubmitMsg:
 		key := m.crypt.KeyFit(msg.Key)
 		if err := m.storage.Store(key); err != nil {
-			// Если при сохранении мастер-ключа произошла ошибка, тогда возвращаемся в ЛК.
+			// Если при сохранении мастер-ключа произошла ошибка, то возвращаемся в ЛК.
 			m.current = errmsg.New(err, gotoPrivateMenuCmd)
 			return m, nil
 		}
@@ -354,6 +361,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case masterkey_form.CancelMsg:
 		return m, gotoPrivateMenuCmd
 
+	case privateStoreStartMsg:
+		switch msg.dataType {
+		case server.TypeLoginPass:
+			return m, newGotoModelCmd(newStoreLoginPassForm(), stateStoreLoginPass)
+		case server.TypeText:
+			return m, newGotoModelCmd(newStoreTextForm(), stateStoreText)
+		case server.TypeBinary:
+			return m, newGotoModelCmd(newStoreBinaryForm(), stateStoreBinary)
+		case server.TypeBankCard:
+			return m, newGotoModelCmd(newStoreBankCardForm(), stateStoreBankCard)
+		}
+		return m, nil
 	}
 
 	// Обработка если приложение в конкретном состоянии.
@@ -375,18 +394,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						},
 					)
 					if err == nil {
-						return loading.DoneCmd{
-							Cmd: gotoPrivateMenuCmd,
-						}
-					} else {
-						return loading.DoneCmd{
-							Cmd: func() tea.Msg {
-								return showErrorMsg{
-									err:       err,
-									gotoModel: gotoModelFail,
-								}
-							},
-						}
+						return gotoPrivateMenuMsg{}
+					}
+					return showErrorMsg{
+						err: err,
+						cmd: newGotoModelCmd(gotoModelFail, 0),
 					}
 				},
 			)
@@ -420,18 +432,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							},
 							gotoRootMenuCmd,
 						)
-						return loading.DoneCmd{
-							Cmd: newGotoModelCmd(model, 0),
+						return gotoModelMsg{
+							model: model,
 						}
-					} else {
-						return loading.DoneCmd{
-							Cmd: func() tea.Msg {
-								return showErrorMsg{
-									err:       err,
-									gotoModel: gotoModelFail,
-								}
-							},
-						}
+					}
+					return showErrorMsg{
+						err: err,
+						cmd: newGotoModelCmd(gotoModelFail, 0),
 					}
 				},
 			)
@@ -439,6 +446,78 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Отмена ввода в форме.
 		case form.CancelMsg:
 			return m, gotoRootMenuCmd
+		}
+
+	case stateStoreLoginPass:
+		switch msg := msg.(type) {
+		case form.SubmitMsg:
+			idxName, idxMeta, idxLogin, idxPass := 0, 1, 2, 3
+			dto := server.LoginPassDTO{
+				Sign:     masterKeyCheckSign,
+				Login:    msg.Values[idxLogin],
+				Password: msg.Values[idxPass],
+			}
+			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], dto)
+
+		case form.CancelMsg:
+			return m, gotoPrivateMenuCmd
+		}
+
+	case stateStoreText:
+		switch msg := msg.(type) {
+		case form.SubmitMsg:
+			idxName, idxMeta, idxText := 0, 1, 2
+			dto := server.TextDTO{
+				Sign: masterKeyCheckSign,
+				Text: msg.Values[idxText],
+			}
+			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], dto)
+
+		case form.CancelMsg:
+			return m, gotoPrivateMenuCmd
+		}
+
+	// Велено на сервер отправить двоичные данные.
+	// Бинарные данные берём из файла.
+	case stateStoreBinary:
+		switch msg := msg.(type) {
+		case form.SubmitMsg:
+			idxName, idxMeta, idxFilePath := 0, 1, 2
+			data, err := os.ReadFile(msg.Values[idxFilePath])
+			if err != nil {
+				return m, newShowErrCmd(err, gotoPrivateMenuCmd)
+			}
+
+			dto := server.BinaryDTO{
+				Sign: masterKeyCheckSign,
+				Data: data,
+			}
+			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], dto)
+
+		case form.CancelMsg:
+			return m, gotoPrivateMenuCmd
+		}
+
+	case stateStoreBankCard:
+		switch msg := msg.(type) {
+		case form.SubmitMsg:
+			idxName, idxMeta, idxNumber, idxExpires, idxCVV := 0, 1, 2, 3, 4
+			dto := server.BankCardDTO{
+				Sign:    masterKeyCheckSign,
+				Number:  msg.Values[idxNumber],
+				Expires: msg.Values[idxExpires],
+				CVV:     msg.Values[idxCVV],
+			}
+
+			if err := dto.Validate(); err != nil {
+				m.current = errmsg.New(err, gotoPrivateMenuCmd)
+				return m, m.current.Init()
+			}
+
+			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], dto)
+
+		case form.CancelMsg:
+			return m, gotoPrivateMenuCmd
 		}
 	}
 
@@ -468,4 +547,50 @@ func (m Model) decodeData(data []byte) []byte {
 	}
 
 	return result
+}
+
+func (m Model) storeData(name string, meta string, dto any) (tea.Model, tea.Cmd) {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	m.cancelFunc = &cancelFunc
+
+	gotoModelFail := m.current
+	m.current = loading.New(
+		func() tea.Msg {
+			b := []byte(nil)
+			buff := bytes.NewBuffer(b)
+			encoder := gob.NewEncoder(buff)
+			err := encoder.Encode(dto)
+			if err != nil {
+				log.Fatalf("login pass encode error: %s", err)
+			}
+
+			data := server.PrivateDataDTO{
+				BasePrivateDataDTO: server.BasePrivateDataDTO{
+					Type: private.TypeLoginPass,
+					Name: name,
+					Meta: meta,
+				},
+				Data: b,
+			}
+			err = m.server.Store(ctx, data)
+			if err == nil {
+				//todo отображать сообщение можно покрасивее.
+				return gotoModelMsg{
+					model: info.NewModel(
+						map[string]string{
+							"message": "Store success",
+						},
+						gotoPrivateMenuCmd,
+					),
+					newState: stateOnPrivateMenu,
+				}
+			}
+
+			return showErrorMsg{
+				err: err,
+				cmd: newGotoModelCmd(gotoModelFail, 0),
+			}
+		},
+	)
+	return m, m.current.Init()
 }

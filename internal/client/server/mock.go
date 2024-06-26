@@ -14,7 +14,7 @@ var _ IServer = (*MockServer)(nil)
 type MockServer struct{}
 
 func (m *MockServer) Login(ctx context.Context, dto LoginDTO) error {
-	t := time.NewTicker(2 * time.Second)
+	t := time.NewTicker(time.Second)
 	select {
 	case <-ctx.Done():
 		return context.Canceled
@@ -24,7 +24,7 @@ func (m *MockServer) Login(ctx context.Context, dto LoginDTO) error {
 }
 
 func (m *MockServer) Logout(ctx context.Context) error {
-	t := time.NewTicker(2 * time.Second)
+	t := time.NewTicker(time.Second)
 	select {
 	case <-ctx.Done():
 		return context.Canceled
@@ -34,7 +34,7 @@ func (m *MockServer) Logout(ctx context.Context) error {
 }
 
 func (m *MockServer) Registration(ctx context.Context, dto RegistrationDTO) error {
-	t := time.NewTicker(2 * time.Second)
+	t := time.NewTicker(time.Second)
 	select {
 	case <-ctx.Done():
 		return context.Canceled
@@ -185,7 +185,7 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 		}
 	}
 
-	t := time.NewTicker(2 * time.Second)
+	t := time.NewTicker(time.Second)
 	select {
 	case <-ctx.Done():
 		return nil, context.Canceled
@@ -194,7 +194,7 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 	}
 }
 func (m *MockServer) Store(ctx context.Context, dto PrivateDataDTO) error {
-	t := time.NewTicker(2 * time.Second)
+	t := time.NewTicker(time.Second)
 	select {
 	case <-ctx.Done():
 		return context.Canceled

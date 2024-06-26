@@ -48,6 +48,7 @@ type BasePrivateDataDTO struct {
 }
 
 // PrivateDataDTO данные пришли с сервера.
+// Так же используется для сохранения.
 type PrivateDataDTO struct {
 	BasePrivateDataDTO
 	Data []byte
