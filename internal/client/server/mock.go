@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey/encrypt"
+	"github.com/gam6itko/goph-keeper/internal/client/serialize"
 	"log"
 	"time"
 )
@@ -92,9 +93,9 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 	var result *PrivateDataDTO
 	switch id {
 	case 1:
-		dto := LoginPassDTO{Login: "user1", Password: "pass1"}
-		c := LoginPassEncoder{}
-		payload, err := c.Encode(dto)
+		dto := serialize.LoginPassDTO{Login: "user1", Password: "pass1"}
+		ser := serialize.LoginPass{}
+		payload, err := ser.Serialize(dto)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -144,7 +145,20 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 			Data: data,
 		}
 	case 4:
-		data, err := enc.Encrypt(key, []byte(sign+"_bank_card"))
+		dto := serialize.BankCardDTO{
+			Number:  "4929175965841786",
+			Expires: "02/22",
+			CVV:     "123",
+		}
+		ser := serialize.BankCard{}
+		payload, err := ser.Serialize(dto)
+		if err != nil {
+			log.Fatal(err)
+		}
+		b := make([]byte, 0, len(sign)+len(payload))
+		b = append(b, sign...)
+		b = append(b, payload...)
+		data, err := enc.Encrypt(key, b)
 		if err != nil {
 			log.Fatal(err)
 		}

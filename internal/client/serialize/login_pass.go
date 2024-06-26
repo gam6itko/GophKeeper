@@ -1,4 +1,4 @@
-package server
+package serialize
 
 import (
 	"errors"
@@ -10,11 +10,11 @@ type LoginPassDTO struct {
 	Password string
 }
 
-// LoginPassEncoder преобразует структуру данных в массив.
+// LoginPass преобразует структуру данных в массив.
 // Разделителем является 0-byte.
-type LoginPassEncoder struct{}
+type LoginPass struct{}
 
-func (e LoginPassEncoder) Encode(dto LoginPassDTO) ([]byte, error) {
+func (ths LoginPass) Serialize(dto LoginPassDTO) ([]byte, error) {
 	if dto.Login == "" || dto.Password == "" {
 		return nil, errors.New("empty login or password")
 	}
@@ -27,7 +27,7 @@ func (e LoginPassEncoder) Encode(dto LoginPassDTO) ([]byte, error) {
 	return result, nil
 }
 
-func (e LoginPassEncoder) Decode(data []byte) (LoginPassDTO, error) {
+func (ths LoginPass) Deserialize(data []byte) (LoginPassDTO, error) {
 	z, ok := findZeroByteIndex(data, 0)
 	if !ok {
 		log.Fatal("invalid format")
@@ -38,19 +38,11 @@ func (e LoginPassEncoder) Decode(data []byte) (LoginPassDTO, error) {
 	}, nil
 }
 
-type TextEncoder struct{}
-
-func (e TextEncoder) Encode(text string) ([]byte, error) {
-	return []byte(text), nil
-}
-
-func (e TextEncoder) Decode(data []byte) (string, error) {
-	return string(data), nil
-}
-
+// findZeroByteIndex возвращает индекс первого попавшегося элемента со значением 0.
+// Поиска начинается с индекса from.
 func findZeroByteIndex(data []byte, from int) (int, bool) {
 	l := len(data)
-	for i := 0; i < l; i++ {
+	for i := from; i < l; i++ {
 		if data[i] == 0 {
 			return i, true
 		}

@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey/encrypt"
+	"github.com/gam6itko/goph-keeper/internal/client/serialize"
 	"github.com/gam6itko/goph-keeper/internal/client/server"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/errmsg"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
@@ -222,8 +223,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.dto.Type {
 		case server.TypeLoginPass:
-			e := server.LoginPassEncoder{}
-			dto, err := e.Decode(data)
+			ser := serialize.LoginPass{}
+			dto, err := ser.Deserialize(data)
 			if err != nil {
 				log.Fatal("invalid login pass")
 			}
@@ -237,8 +238,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case server.TypeText:
-			e := server.TextEncoder{}
-			text, err := e.Decode(data)
+			ser := serialize.Text{}
+			text, err := ser.Deserialize(data)
 			if err != nil {
 				log.Fatal("invalid text")
 			}
@@ -252,6 +253,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case server.TypeBinary:
 		case server.TypeBankCard:
+			ser := serialize.BankCard{}
+			dto, err := ser.Deserialize(data)
+			if err != nil {
+				log.Fatal("invalid text")
+			}
+			m.current = info.NewModel(
+				map[string]string{
+					"number":  dto.Number,
+					"expires": dto.Expires,
+					"cvv":     dto.CVV,
+				},
+				gotoPrivateMenuCmd,
+			)
+			return m, nil
 		}
 		//todo type switch
 		//  data decode

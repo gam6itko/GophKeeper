@@ -8,6 +8,7 @@ import (
 	"io"
 )
 
+// AESCrypt нужен для шифровки данных отправляемых на сервер.
 type AESCrypt struct {
 }
 
