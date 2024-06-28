@@ -73,3 +73,9 @@ func invert(key *memguard.Enclave) *memguard.Enclave {
 	// Return the new data in encrypted form
 	return b.Seal() // <- sealing also destroys b
 }
+
+//todo
+//	- Схема БД, создание БД при запуске приложения если БД не инициализирована.
+//  - Запуск gRPC сервера.
+//	- Ендпоинты для Регистрации, Аутентифакации, Сохранения данных
+//	- LTSL для всех методов кроме register. Или TLS ?

@@ -23,7 +23,8 @@ func (ths PrivateDataType) String() string {
 }
 
 const (
-	TypeLoginPass = iota
+	TypeUndefined = iota
+	TypeLoginPass
 	TypeText
 	TypeBinary
 	TypeBankCard

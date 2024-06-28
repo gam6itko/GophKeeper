@@ -9,7 +9,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey/encrypt"
-	"github.com/gam6itko/goph-keeper/internal/client/private"
 	"github.com/gam6itko/goph-keeper/internal/client/server"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/errmsg"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/form"
@@ -96,6 +95,7 @@ const (
 )
 
 // Model - самая главная модель этой программы.
+// Обрабатывает тыкание юзера в кнопки (на клавиатуре), сама обрабатывает или дочерним моделям передаёт.
 type Model struct {
 	server  server.IServer
 	storage masterkey.IStorage
@@ -103,9 +103,10 @@ type Model struct {
 
 	width, height int
 	current       tea.Model
-	prev          tea.Model
-	state         appState
-	cancelFunc    *context.CancelFunc
+	// state сос
+	state appState
+	// cancelFunc функция отмены контекста переданного функции запроса на сервер.
+	cancelFunc *context.CancelFunc
 }
 
 func New(server server.IServer, storage masterkey.IStorage, crypt encrypt.ICrypt) *Model {
@@ -566,7 +567,7 @@ func (m Model) storeData(name string, meta string, dto any) (tea.Model, tea.Cmd)
 
 			data := server.PrivateDataDTO{
 				BasePrivateDataDTO: server.BasePrivateDataDTO{
-					Type: private.TypeLoginPass,
+					Type: server.TypeLoginPass,
 					Name: name,
 					Meta: meta,
 				},

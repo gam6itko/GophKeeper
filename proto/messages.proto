@@ -2,3 +2,77 @@ syntax = "proto3";
 
 package goph_keeper;
 
+option go_package = "demo/proto";
+
+enum DataType {
+  Undefined = 0;
+  LoginPass = 1;
+  Text = 2;
+  Binary = 3;
+  BankCard = 4;
+}
+
+message PrivateDataListItem {
+  int32 id = 1;
+  string name = 2;
+  string meta = 3;
+}
+
+message PrivateData {
+  int32 id = 1;
+  string name = 2;
+  string meta = 3;
+  repeated bytes data = 4;
+}
+
+message LoginRequest {
+  string user = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string error = 1;
+}
+
+
+message RegistrationRequest {
+  string user = 1;
+  string password = 2;
+}
+
+message RegistrationResponse {
+  string error = 1;
+}
+
+message ListRequest {
+}
+
+message ListResponse{
+  repeated PrivateData List = 1;
+}
+
+message StoreRequest {
+  PrivateData item = 1;
+}
+
+message StoreResponse {
+  string error = 1;
+}
+
+message LoadRequest {
+  int32 id = 1;
+}
+
+message LoadResponse {
+  PrivateData item = 1;
+}
+
+
+service Server {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Registration(LoginRequest) returns (LoginResponse);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc Load(LoadRequest) returns (LoadResponse);
+  rpc Store(StoreRequest) returns (StoreResponse);
+}
+
