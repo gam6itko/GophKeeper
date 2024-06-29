@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey"
@@ -21,10 +20,6 @@ import (
 
 var buildVersion = "0.0.0"
 var buildDate = "never"
-
-// masterKeyCheckSign - строка которая должна быть корректно в расшифрованна местер-ключом сообщении.
-// Если строки не идентичны, то мастер-ключ был указан неверно.
-var masterKeyCheckSign = "WTF"
 
 type (
 	// gotoModelMsg нужно отобразить на экране другую модель.
@@ -249,11 +244,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if err != nil {
 				log.Fatalf("login pass decode error: %s", err)
 			}
-			if dto.Sign != masterKeyCheckSign {
-				m.storage.Clear()
-				m.current = errmsg.New(errors.New("invalid master key"), gotoPrivateMenuCmd)
-				return m, nil
-			}
 			m.current = info.NewModel(
 				map[string]string{
 					"login   ": dto.Login,
@@ -268,11 +258,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			err := decoder.Decode(&dto)
 			if err != nil {
 				log.Fatalf("text decode error: %s", err)
-			}
-			if dto.Sign != masterKeyCheckSign {
-				m.storage.Clear()
-				m.current = errmsg.New(errors.New("invalid master key"), gotoPrivateMenuCmd)
-				return m, nil
 			}
 			m.current = info.NewModel(
 				map[string]string{
@@ -289,11 +274,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			err := decoder.Decode(&dto)
 			if err != nil {
 				log.Fatalf("binary decode fail. %s", err)
-			}
-			if dto.Sign != masterKeyCheckSign {
-				m.storage.Clear()
-				m.current = errmsg.New(errors.New("invalid master key"), gotoPrivateMenuCmd)
-				return m, nil
 			}
 
 			f, err := os.CreateTemp("/tmp", "*.bin")
@@ -454,7 +434,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case form.SubmitMsg:
 			idxName, idxMeta, idxLogin, idxPass := 0, 1, 2, 3
 			dto := server.LoginPassDTO{
-				Sign:     masterKeyCheckSign,
 				Login:    msg.Values[idxLogin],
 				Password: msg.Values[idxPass],
 			}
@@ -469,7 +448,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case form.SubmitMsg:
 			idxName, idxMeta, idxText := 0, 1, 2
 			dto := server.TextDTO{
-				Sign: masterKeyCheckSign,
 				Text: msg.Values[idxText],
 			}
 			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], dto)
@@ -490,7 +468,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			dto := server.BinaryDTO{
-				Sign: masterKeyCheckSign,
 				Data: data,
 			}
 			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], dto)
@@ -504,7 +481,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case form.SubmitMsg:
 			idxName, idxMeta, idxNumber, idxExpires, idxCVV := 0, 1, 2, 3, 4
 			dto := server.BankCardDTO{
-				Sign:    masterKeyCheckSign,
 				Number:  msg.Values[idxNumber],
 				Expires: msg.Values[idxExpires],
 				CVV:     msg.Values[idxCVV],

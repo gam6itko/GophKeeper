@@ -14,7 +14,6 @@ var reCVV = regexp.MustCompile("^\\d{3}$")
 // BankCardDTO структура для передачи на сервер.
 // todo для экономии места можно оперировать не строками а числами.
 type BankCardDTO struct {
-	Sign string
 	// Number строка из
 	Number string
 	// Expires - строка формата 'MM/YY'
@@ -50,17 +49,14 @@ func (dto BankCardDTO) Validate() error {
 }
 
 type LoginPassDTO struct {
-	Sign     string
 	Login    string
 	Password string
 }
 
 type TextDTO struct {
-	Sign string
 	Text string
 }
 
 type BinaryDTO struct {
-	Sign string
 	Data []byte
 }

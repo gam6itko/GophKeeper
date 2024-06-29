@@ -1,19 +1,21 @@
-package server
+package mock
 
 import (
 	"bytes"
 	"context"
 	"encoding/gob"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey/encrypt"
+	"github.com/gam6itko/goph-keeper/internal/client/server"
 	"log"
 	"time"
 )
 
-var _ IServer = (*MockServer)(nil)
+var _ server.IServer = (*Server)(nil)
 
-type MockServer struct{}
+// Server структура для разработки и отладки.
+type Server struct{}
 
-func (m *MockServer) Login(ctx context.Context, dto LoginDTO) error {
+func (m *Server) Login(ctx context.Context, dto server.LoginDTO) error {
 	t := time.NewTicker(time.Second)
 	select {
 	case <-ctx.Done():
@@ -23,7 +25,7 @@ func (m *MockServer) Login(ctx context.Context, dto LoginDTO) error {
 	}
 }
 
-func (m *MockServer) Logout(ctx context.Context) error {
+func (m *Server) Logout(ctx context.Context) error {
 	t := time.NewTicker(time.Second)
 	select {
 	case <-ctx.Done():
@@ -33,7 +35,7 @@ func (m *MockServer) Logout(ctx context.Context) error {
 	}
 }
 
-func (m *MockServer) Registration(ctx context.Context, dto RegistrationDTO) error {
+func (m *Server) Registration(ctx context.Context, dto server.RegistrationDTO) error {
 	t := time.NewTicker(time.Second)
 	select {
 	case <-ctx.Done():
@@ -43,41 +45,41 @@ func (m *MockServer) Registration(ctx context.Context, dto RegistrationDTO) erro
 	}
 }
 
-func (m *MockServer) List(_ context.Context) ([]PrivateDataListItemDTO, error) {
-	loginPass := PrivateDataListItemDTO{
-		BasePrivateDataDTO: BasePrivateDataDTO{
+func (m *Server) List(_ context.Context) ([]server.PrivateDataListItemDTO, error) {
+	loginPass := server.PrivateDataListItemDTO{
+		BasePrivateDataDTO: server.BasePrivateDataDTO{
 			ID:   1,
 			Name: "LoginPass",
-			Type: TypeLoginPass,
+			Type: server.TypeLoginPass,
 			Meta: "this is login pass",
 		},
 	}
-	text := PrivateDataListItemDTO{
-		BasePrivateDataDTO: BasePrivateDataDTO{
+	text := server.PrivateDataListItemDTO{
+		BasePrivateDataDTO: server.BasePrivateDataDTO{
 			ID:   2,
 			Name: "TextDTO",
-			Type: TypeText,
+			Type: server.TypeText,
 			Meta: "this is text",
 		},
 	}
-	binary := PrivateDataListItemDTO{
-		BasePrivateDataDTO: BasePrivateDataDTO{
+	binary := server.PrivateDataListItemDTO{
+		BasePrivateDataDTO: server.BasePrivateDataDTO{
 			ID:   3,
 			Name: "Binary",
-			Type: TypeBinary,
+			Type: server.TypeBinary,
 			Meta: "this is binary",
 		},
 	}
-	bankCard := PrivateDataListItemDTO{
-		BasePrivateDataDTO: BasePrivateDataDTO{
+	bankCard := server.PrivateDataListItemDTO{
+		BasePrivateDataDTO: server.BasePrivateDataDTO{
 			ID:   4,
 			Name: "BankCard",
-			Type: TypeBankCard,
+			Type: server.TypeBankCard,
 			Meta: "this is bank card",
 		},
 	}
 
-	return []PrivateDataListItemDTO{
+	return []server.PrivateDataListItemDTO{
 		loginPass,
 		text,
 		binary,
@@ -85,19 +87,18 @@ func (m *MockServer) List(_ context.Context) ([]PrivateDataListItemDTO, error) {
 	}, nil
 }
 
-func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, error) {
+func (m *Server) Load(ctx context.Context, id uint32) (*server.PrivateDataDTO, error) {
 	enc := encrypt.NewAESCrypt()
 
 	key := enc.KeyFit([]byte("123"))
-	sign := "WTF"
 
 	buff := bytes.NewBuffer([]byte("WTF"))
 	encoder := gob.NewEncoder(buff)
 
-	var result *PrivateDataDTO
+	var result *server.PrivateDataDTO
 	switch id {
 	case 1:
-		dto := LoginPassDTO{Sign: sign, Login: "user1", Password: "pass1"}
+		dto := server.LoginPassDTO{Login: "user1", Password: "pass1"}
 		err := encoder.Encode(dto)
 		if err != nil {
 			log.Fatal(err)
@@ -109,17 +110,17 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 		if err != nil {
 			log.Fatal(err)
 		}
-		result = &PrivateDataDTO{
-			BasePrivateDataDTO: BasePrivateDataDTO{
+		result = &server.PrivateDataDTO{
+			BasePrivateDataDTO: server.BasePrivateDataDTO{
 				ID:   1,
 				Name: "LoginPass",
-				Type: TypeLoginPass,
+				Type: server.TypeLoginPass,
 				Meta: "this is login pass",
 			},
 			Data: data,
 		}
 	case 2:
-		dto := TextDTO{Sign: sign, Text: "you shouldn't see this"}
+		dto := server.TextDTO{Text: "you shouldn't see this"}
 		err := encoder.Encode(dto)
 		if err != nil {
 			log.Fatal(err)
@@ -128,17 +129,17 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 		if err != nil {
 			log.Fatal(err)
 		}
-		result = &PrivateDataDTO{
-			BasePrivateDataDTO: BasePrivateDataDTO{
+		result = &server.PrivateDataDTO{
+			BasePrivateDataDTO: server.BasePrivateDataDTO{
 				ID:   2,
 				Name: "TextDTO",
-				Type: TypeText,
+				Type: server.TypeText,
 				Meta: "this is text",
 			},
 			Data: data,
 		}
 	case 3:
-		dto := BinaryDTO{Sign: sign, Data: []byte("123qweasdzxc_binary")}
+		dto := server.BinaryDTO{Data: []byte("123qweasdzxc_binary")}
 		err := encoder.Encode(dto)
 		if err != nil {
 			log.Fatal(err)
@@ -147,18 +148,17 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 		if err != nil {
 			log.Fatal(err)
 		}
-		result = &PrivateDataDTO{
-			BasePrivateDataDTO: BasePrivateDataDTO{
+		result = &server.PrivateDataDTO{
+			BasePrivateDataDTO: server.BasePrivateDataDTO{
 				ID:   3,
 				Name: "Binary",
-				Type: TypeBinary,
+				Type: server.TypeBinary,
 				Meta: "this is binary",
 			},
 			Data: data,
 		}
 	case 4:
-		dto := BankCardDTO{
-			Sign:    sign,
+		dto := server.BankCardDTO{
 			Number:  "4929175965841786",
 			Expires: "02/22",
 			CVV:     "123",
@@ -174,11 +174,11 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 		if err != nil {
 			log.Fatal(err)
 		}
-		result = &PrivateDataDTO{
-			BasePrivateDataDTO: BasePrivateDataDTO{
+		result = &server.PrivateDataDTO{
+			BasePrivateDataDTO: server.BasePrivateDataDTO{
 				ID:   4,
 				Name: "BankCard",
-				Type: TypeBankCard,
+				Type: server.TypeBankCard,
 				Meta: "this is bank card",
 			},
 			Data: data,
@@ -193,7 +193,7 @@ func (m *MockServer) Load(ctx context.Context, id uint32) (*PrivateDataDTO, erro
 		return result, nil
 	}
 }
-func (m *MockServer) Store(ctx context.Context, dto PrivateDataDTO) error {
+func (m *Server) Store(ctx context.Context, dto server.PrivateDataDTO) error {
 	t := time.NewTicker(time.Second)
 	select {
 	case <-ctx.Done():
