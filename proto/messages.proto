@@ -22,11 +22,11 @@ message PrivateDataListItem {
 
 // Данные отправленные или запрошенные пользователем.
 message PrivateData {
-  int32 id = 1;
+  uint32 id = 1;
   DataType type = 2;
   string name = 3;
   string meta = 4;
-  repeated bytes data = 5;
+  bytes data = 5;
 }
 
 
@@ -38,7 +38,6 @@ message LoginRequest {
 message LoginResponse {
   // токен для авторизации
   string token = 1;
-  string error = 2;
 }
 
 
@@ -64,12 +63,12 @@ message StoreRequest {
 }
 
 message StoreResponse {
-  string error = 1;
+  uint32 id = 1;
 }
 
 
 message LoadRequest {
-  int32 id = 1;
+  uint32 id = 1;
 }
 
 message LoadResponse {

@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS `user`
 (
     `id`       int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `username` varchar(255) NOT NULL,
-    `password` binary(40)   NOT NULL,
+    `password` binary(60)   NOT NULL,
     UNIQUE KEY `u_username` (`username`)
 ) ENGINE = InnoDB;
 

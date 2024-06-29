@@ -63,10 +63,15 @@ type PrivateDataListItemDTO struct {
 type IServer interface {
 	Registration(ctx context.Context, dto RegistrationDTO) error
 
+	// Login - аутентификация.
 	Login(ctx context.Context, dto LoginDTO) error
+	// Logout - сбросить аутентификацию.
 	Logout(ctx context.Context) error
 
+	// List - получить список данных пользователя на сервере.
 	List(ctx context.Context) ([]PrivateDataListItemDTO, error)
+	// Load - загрузить одну запись с данными пользователя.
 	Load(ctx context.Context, id uint32) (*PrivateDataDTO, error)
+	// Store - сохранить одну запись с данными пользователя.
 	Store(ctx context.Context, dto PrivateDataDTO) error
 }

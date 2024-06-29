@@ -55,7 +55,7 @@ func main() {
 		grpc.UnaryInterceptor(jwt_inter.New(issuer).Intercept),
 	)
 	// Регистрируем сервисы.
-	proto.RegisterAuthServer(s, service.NewAuthServerImpl(db))
+	proto.RegisterAuthServer(s, service.NewAuthServerImpl(db, issuer))
 	proto.RegisterKeeperServer(s, service.NewKeeperImpl(db))
 
 	fmt.Println("gRPC server listening on " + cfg.GRPC.ServerAddr)
@@ -64,9 +64,3 @@ func main() {
 		log.Printf("server stop. err: %s", err)
 	}
 }
-
-//todo
-//  - Запуск gRPC сервера.
-//	- Ендпоинты для Регистрации, Аутентифакации, Сохранения данных
-
-//todo Login - jwt token
