@@ -7,75 +7,59 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
-	"github.com/awnumar/memguard"
+	"github.com/gam6itko/goph-keeper/internal/server"
+	_ "github.com/go-sql-driver/mysql"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"log"
+	"net"
+
+	"github.com/gam6itko/goph-keeper/internal/server/config"
+	"github.com/gam6itko/goph-keeper/internal/server/interceptors/jwt"
+	"github.com/gam6itko/goph-keeper/proto"
 )
 
-//func main() {
-//	fmt.Print("Hello World")
-//}
-
-//todo хранить логины, пароли, бинарные данные и прочую приватную информацию.
-
-// endpoints
-// - login
-// - auth
-// - save all
-// - get all
-// keys exchange
 func main() {
-	// Safely terminate in case of an interrupt signal
-	memguard.CatchInterrupt()
+	cfg := config.Load()
 
-	// Purge the session when we return
-	defer memguard.Purge()
-
-	// Generate a key sealed inside an encrypted container
-	key := memguard.NewEnclave([]byte("sekretkey"))
-
-	b, err := key.Open()
+	// определяем порт для сервера
+	listen, err := net.Listen("tcp", cfg.GRPC.ServerAddr)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	fmt.Println(b)
 
-	//// Passing the key off to another function
-	//key = invert(key)
-	//
-	//// Decrypt the result returned from invert
-	//keyBuf, err := key.Open()
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, err)
-	//	return
-	//}
-	//defer keyBuf.Destroy()
-	//
-	//// Um output it
-	//fmt.Println(keyBuf.Bytes())
-}
-
-func invert(key *memguard.Enclave) *memguard.Enclave {
-	// Decrypt the key into a local copy
-	b, err := key.Open()
+	// Create tls based credential.
+	creds, err := credentials.NewServerTLSFromFile(cfg.GRPC.TLS.CertPEM, cfg.GRPC.TLS.KeyPEM)
 	if err != nil {
-		memguard.SafePanic(err)
-	}
-	defer b.Destroy() // Destroy the copy when we return
-
-	// Open returns the data in an immutable buffer, so make it mutable
-	b.Melt()
-
-	// Set every element to its complement
-	for i := range b.Bytes() {
-		b.Bytes()[i] = ^b.Bytes()[i]
+		log.Fatalf("failed to create credentials: %v", err)
 	}
 
-	// Return the new data in encrypted form
-	return b.Seal() // <- sealing also destroys b
+	db, err := sql.Open("mysql", cfg.DatabaseDSN)
+	if err != nil {
+		log.Fatalf("database connection error: %v", err)
+	}
+
+	// Создаём gRPC-сервер без зарегистрированной службы.
+	s := grpc.NewServer(
+		grpc.Creds(creds),
+		grpc.UnaryInterceptor(jwt.New().Intercept),
+	)
+	// Регистрируем сервисы.
+	proto.RegisterAuthServer(s, server.NewAuthServerImpl(db))
+	proto.RegisterKeeperServer(s, server.NewKeeperImpl(db))
+
+	fmt.Println("gRPC server listening on " + cfg.GRPC.ServerAddr)
+	// получаем запрос gRPC
+	if err = s.Serve(listen); err != nil {
+		log.Printf("server stop. err: %s", err)
+	}
 }
 
 //todo
 //	- Схема БД, создание БД при запуске приложения если БД не инициализирована.
 //  - Запуск gRPC сервера.
 //	- Ендпоинты для Регистрации, Аутентифакации, Сохранения данных
-//	- LTSL для всех методов кроме register. Или TLS ?
+
+//todo Login - jwt token

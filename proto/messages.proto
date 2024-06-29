@@ -73,11 +73,14 @@ message LoadResponse {
 }
 
 
-service Server {
+service Auth {
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc Registration(LoginRequest) returns (LoginResponse);
+
+}
+
+service Keeper {
   rpc List(ListRequest) returns (ListResponse);
   rpc Load(LoadRequest) returns (LoadResponse);
   rpc Store(StoreRequest) returns (StoreResponse);
 }
-
