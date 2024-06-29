@@ -1,7 +1,16 @@
 package masterkey
 
+import "errors"
+
+var _ IStorage = (*SimpleStorage)(nil)
+
+// SimpleStorage - простое хранилище для разработки.
 type SimpleStorage struct {
 	key []byte
+}
+
+func NewSimpleStorage() *SimpleStorage {
+	return &SimpleStorage{}
 }
 
 func (ths *SimpleStorage) Has() bool {
@@ -9,6 +18,10 @@ func (ths *SimpleStorage) Has() bool {
 }
 
 func (ths *SimpleStorage) Load() ([]byte, error) {
+	if !ths.Has() {
+		return nil, errors.New("no key stored")
+	}
+
 	return ths.key, nil
 }
 

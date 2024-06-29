@@ -5,6 +5,9 @@ import (
 	"github.com/awnumar/memguard"
 )
 
+var _ IStorage = (*MemGuardStorage)(nil)
+
+// MemGuardStorage - хранилище с защитой от дампа памяти.
 type MemGuardStorage struct {
 	enclave *memguard.Enclave
 }
@@ -30,9 +33,6 @@ func (ths *MemGuardStorage) Load() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer b.Destroy()
-
-	b.Melt()
 
 	return b.Bytes(), nil
 }
@@ -45,4 +45,8 @@ func (ths *MemGuardStorage) Store(key []byte) error {
 	ths.enclave = memguard.NewEnclave(key)
 
 	return nil
+}
+
+func (ths *MemGuardStorage) Clear() {
+	ths.enclave = nil
 }

@@ -13,8 +13,7 @@ import (
 
 func main() {
 	s := &server.MockServer{}
-	//memStorage := masterkey.NewMemGuardStorage()
-	memStorage := &masterkey.SimpleStorage{}
+	memStorage := masterkey.NewMemGuardStorage()
 	crypt := encrypt.NewAESCrypt()
 	p := tea.NewProgram(
 		root.New(s, memStorage, crypt),
