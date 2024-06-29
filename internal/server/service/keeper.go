@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"context"
@@ -18,6 +18,7 @@ func NewKeeperImpl(db *sql.DB) *KeeperImpl {
 }
 
 func (KeeperImpl) List(ctx context.Context, req *proto.ListRequest) (*proto.ListResponse, error) {
+
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (KeeperImpl) Load(ctx context.Context, req *proto.LoadRequest) (*proto.LoadResponse, error) {

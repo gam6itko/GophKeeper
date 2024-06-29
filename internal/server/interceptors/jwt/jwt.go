@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"context"
+	"github.com/gam6itko/goph-keeper/internal/server/jwt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -11,11 +12,13 @@ import (
 const Header = "Authorization"
 
 type Interceptor struct {
-	//todo jwt parser
+	issuer *jwt.Issuer
 }
 
-func New() *Interceptor {
-	return &Interceptor{}
+func New(issuer *jwt.Issuer) *Interceptor {
+	return &Interceptor{
+		issuer,
+	}
 }
 
 func (ths Interceptor) Intercept(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {

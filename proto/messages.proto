@@ -12,12 +12,15 @@ enum DataType {
   BankCard = 4;
 }
 
+// Кратка информация об имеющихся на сервере записях для отображения списка.
 message PrivateDataListItem {
   int32 id = 1;
-  string name = 2;
-  string meta = 3;
+  DataType type = 2;
+  string name = 3;
+  string meta = 4;
 }
 
+// Данные отправленные или запрошенные пользователем.
 message PrivateData {
   int32 id = 1;
   DataType type = 2;
@@ -28,22 +31,23 @@ message PrivateData {
 
 
 message LoginRequest {
-  string user = 1;
+  string username = 1;
   string password = 2;
 }
 
 message LoginResponse {
-  string error = 1;
+  // токен для авторизации
+  string token = 1;
+  string error = 2;
 }
 
 
 message RegistrationRequest {
-  string user = 1;
+  string username = 1;
   string password = 2;
 }
 
 message RegistrationResponse {
-  string error = 1;
 }
 
 
@@ -75,8 +79,7 @@ message LoadResponse {
 
 service Auth {
   rpc Login(LoginRequest) returns (LoginResponse);
-  rpc Registration(LoginRequest) returns (LoginResponse);
-
+  rpc Registration(RegistrationRequest) returns (RegistrationResponse);
 }
 
 service Keeper {

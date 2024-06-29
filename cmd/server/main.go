@@ -8,21 +8,30 @@ package main
 
 import (
 	"database/sql"
+	_ "embed"
 	"fmt"
-	"github.com/gam6itko/goph-keeper/internal/server"
+	jwt_inter "github.com/gam6itko/goph-keeper/internal/server/interceptors/jwt"
+	"github.com/gam6itko/goph-keeper/internal/server/jwt"
+	"github.com/gam6itko/goph-keeper/internal/server/service"
 	_ "github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"log"
 	"net"
+	"time"
 
 	"github.com/gam6itko/goph-keeper/internal/server/config"
-	"github.com/gam6itko/goph-keeper/internal/server/interceptors/jwt"
 	"github.com/gam6itko/goph-keeper/proto"
 )
 
 func main() {
 	cfg := config.Load()
+
+	db, err := sql.Open("mysql", cfg.DatabaseDSN)
+	if err != nil {
+		log.Fatalf("database connection error: %v", err)
+	}
+	initDb(db)
 
 	// определяем порт для сервера
 	listen, err := net.Listen("tcp", cfg.GRPC.ServerAddr)
@@ -36,19 +45,18 @@ func main() {
 		log.Fatalf("failed to create credentials: %v", err)
 	}
 
-	db, err := sql.Open("mysql", cfg.DatabaseDSN)
-	if err != nil {
-		log.Fatalf("database connection error: %v", err)
-	}
-
-	// Создаём gRPC-сервер без зарегистрированной службы.
+	issuer := jwt.NewIssuer(
+		jwt.WithKey([]byte(cfg.JWT.Secret)),
+		jwt.WithExpiresIn(time.Duration(cfg.JWT.ExpiresInSeconds)),
+	)
+	// Создаём gRPC-сервер.
 	s := grpc.NewServer(
 		grpc.Creds(creds),
-		grpc.UnaryInterceptor(jwt.New().Intercept),
+		grpc.UnaryInterceptor(jwt_inter.New(issuer).Intercept),
 	)
 	// Регистрируем сервисы.
-	proto.RegisterAuthServer(s, server.NewAuthServerImpl(db))
-	proto.RegisterKeeperServer(s, server.NewKeeperImpl(db))
+	proto.RegisterAuthServer(s, service.NewAuthServerImpl(db))
+	proto.RegisterKeeperServer(s, service.NewKeeperImpl(db))
 
 	fmt.Println("gRPC server listening on " + cfg.GRPC.ServerAddr)
 	// получаем запрос gRPC
@@ -58,7 +66,6 @@ func main() {
 }
 
 //todo
-//	- Схема БД, создание БД при запуске приложения если БД не инициализирована.
 //  - Запуск gRPC сервера.
 //	- Ендпоинты для Регистрации, Аутентифакации, Сохранения данных
 
