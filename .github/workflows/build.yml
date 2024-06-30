@@ -42,7 +42,6 @@ jobs:
       - name: Generate builder values
         id: values
         run: |
-          env
           echo "version=$(echo ${GITHUB_REF##*/} | sed -e 's/^[vV ]*//')" >> $GITHUB_OUTPUT
           echo "timestamp=$(echo $(date +%FT%T%z))" >> $GITHUB_OUTPUT
           echo "binary-ext=$(echo $(echo `[ '${{ matrix.os }}' = 'windows' ] && echo '.exe'`))" >> $GITHUB_OUTPUT
@@ -57,7 +56,7 @@ jobs:
             -X github.com/gam6itko/goph-keeper/internal/client/tui/root/model.buildDate=${{ steps.values.outputs.timestamp }}
         run: |
           mkdir "./build"
-          go build -ldflags "$CLIENT_LDFLAGS" -o "./build/client" ./cmd/client
+          go build -ldflags "$CLIENT_LDFLAGS" -o "./build/client${{ steps.values.outputs.binary-ext }}" ./cmd/client
           go build -o "./build/server" ./cmd/server
 
       - name: Upload artifact
