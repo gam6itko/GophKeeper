@@ -33,6 +33,7 @@ jobs:
           echo "version=$(echo ${GITHUB_REF##*/} | sed -e 's/^[vV ]*//')" >> $GITHUB_OUTPUT
           echo "timestamp=$(echo $(date +%FT%T%z))" >> $GITHUB_OUTPUT
           echo "binary-ext=$(echo $(echo `[ ${{ matrix.os }} = 'windows' ] && echo '.exe'`))" >> $GITHUB_OUTPUT
+          echo "dist-name=$(echo gophkeeper_${{ matrix.os }}_${{ matrix.arch }})" >> $GITHUB_OUTPUT
 
       - name: Compile binary file
         env:
@@ -42,17 +43,17 @@ jobs:
             -X github.com/gam6itko/goph-keeper/internal/client/tui/root/model.buildVersion=${{ steps.values.outputs.version }}
             -X github.com/gam6itko/goph-keeper/internal/client/tui/root/model.buildDate=${{ steps.values.outputs.timestamp }}
         run: |
-          mkdir ./build
+          mkdir "./build"
           go build -ldflags "$CLIENT_LDFLAGS" -o "./build/client" ./cmd/client
           go build -o "./build/server" ./cmd/server
 
       - name: Pack distributive using zip
-        run: zip -r -q "gophkeeper_${{ matrix.os }}_${{ matrix.arch }}.zip" "gophkeeper_${{ matrix.os }}_${{ matrix.arch }}"
+        run: zip -r -q "${{ steps.values.outputs.dist-name }}.zip" "./build"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: "gophkeeper_${{ matrix.os }}_${{ matrix.arch }}"
-          path: "gophkeeper_${{ matrix.os }}_${{ matrix.arch }}.zip"
+          name: "${{ steps.values.outputs.dist-name }}"
+          path: "${{ steps.values.outputs.dist-name }}.zip"
           if-no-files-found: error
           retention-days: 30
