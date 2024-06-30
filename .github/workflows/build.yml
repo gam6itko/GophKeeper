@@ -40,7 +40,7 @@ jobs:
             -X "github.com/gam6itko/goph-keeper/internal/client/tui/model.buildVersion=${{ steps.values.outputs.version }}
             -X "github.com/gam6itko/goph-keeper/internal/client/tui/model.buildDate=${{ steps.values.outputs.timestamp }}
         run: |
-          go build -ldflags "CLIENT_LDFLAGS" -o "./client_${{ steps.values.outputs.binary-suffix }}" ./cmd/client
+          go build -ldflags "$CLIENT_LDFLAGS" -o "./client_${{ steps.values.outputs.binary-suffix }}" ./cmd/client
           go build -o "./server_${{ steps.values.outputs.binary-suffix }}" ./cmd/server
 
       - name: Upload artifact
