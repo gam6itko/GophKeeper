@@ -42,9 +42,10 @@ jobs:
       - name: Generate builder values
         id: values
         run: |
+          env
           echo "version=$(echo ${GITHUB_REF##*/} | sed -e 's/^[vV ]*//')" >> $GITHUB_OUTPUT
           echo "timestamp=$(echo $(date +%FT%T%z))" >> $GITHUB_OUTPUT
-          echo "binary-ext=$(echo $(echo `[ ${{ matrix.os }} = 'windows' ] && echo '.exe'`))" >> $GITHUB_OUTPUT
+          echo "binary-ext=$(echo $(echo `[ '${{ matrix.os }}' = 'windows' ] && echo '.exe'`))" >> $GITHUB_OUTPUT
           echo "dist-name=$(echo gophkeeper_${{ matrix.os }}_${{ matrix.arch }})" >> $GITHUB_OUTPUT
 
       - name: Compile binary file
