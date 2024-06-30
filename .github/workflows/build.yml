@@ -59,9 +59,6 @@ jobs:
           go build -ldflags "$CLIENT_LDFLAGS" -o "./build/client" ./cmd/client
           go build -o "./build/server" ./cmd/server
 
-#      - name: Pack distributive using zip
-#        run: zip -r -q "${{ steps.values.outputs.dist-name }}.zip" "./build"
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
