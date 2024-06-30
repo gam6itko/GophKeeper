@@ -10,8 +10,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ linux, windows, darwin ]
-        arch: [ amd64, 386 , arm64]
+        os: [ windows, darwin ] # linux, darwin, windows
+        arch: [ amd64 ]   # amd64, 386
+        include:
+          - os: linux
+            arch: amd64
+            # -----
+          - os: linux
+            arch: arm64
+            # -----
+          - os: darwin
+            arch: arm64
+            # -----
+          - os: freebsd
+            arch: amd64
+            # -----
+          - os: ''
+            arch: amd64
     steps:
       - name: Set up Go
         uses: actions/setup-go@v5
