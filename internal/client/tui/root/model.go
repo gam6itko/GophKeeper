@@ -281,6 +281,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			f, err := os.CreateTemp("/tmp", "*.bin")
+			if err != nil {
+				log.Fatal(err)
+			}
 			_, err = f.Write(dataDTO.Data)
 			if err != nil {
 				log.Fatal(err)

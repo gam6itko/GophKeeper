@@ -11,8 +11,6 @@ import (
 type Model struct {
 	spinner spinner.Model
 	initCmd tea.Cmd
-
-	message string
 }
 
 func New(initCmd tea.Cmd) Model {

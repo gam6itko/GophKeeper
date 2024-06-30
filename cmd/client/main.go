@@ -27,6 +27,9 @@ func main() {
 		cfg.GRPC.ServerAddr,
 		grpc.WithTransportCredentials(creds),
 	)
+	if err != nil {
+		log.Fatalf("failed start client: %v", err)
+	}
 
 	s := grpcServer.New(
 		proto.NewAuthClient(conn),

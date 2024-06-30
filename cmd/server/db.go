@@ -19,7 +19,11 @@ func initDb(db *sql.DB) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err = tx.Rollback(); err != nil {
+			log.Printf("tx rollback error: %s", err)
+		}
+	}()
 
 	for _, query := range list {
 		query = strings.TrimSpace(query)
