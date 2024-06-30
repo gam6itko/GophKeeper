@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("database connection error: %v", err)
 	}
-	initDb(db)
+	initDB(db)
 
 	// определяем порт для сервера
 	listen, err := net.Listen("tcp", cfg.GRPC.ServerAddr)

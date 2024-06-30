@@ -11,8 +11,8 @@ import (
 //go:embed resources/init_db.sql
 var initSQL string
 
-// initDb запускает скрипт создания БД.
-func initDb(db *sql.DB) {
+// initDB запускает скрипт создания БД.
+func initDB(db *sql.DB) {
 	list := strings.Split(initSQL, ";")
 	ctx := context.Background()
 	tx, err := db.BeginTx(ctx, nil)
