@@ -5,9 +5,10 @@ import (
 	"fmt"
 )
 
-type PrivateDataType int
+// TPrivateData - тип данных хранящихся на сервере.
+type TPrivateData int
 
-func (ths PrivateDataType) String() string {
+func (ths TPrivateData) String() string {
 	switch ths {
 	case TypeLoginPass:
 		return "login,pass"
@@ -23,7 +24,7 @@ func (ths PrivateDataType) String() string {
 }
 
 const (
-	TypeUndefined = iota
+	TypeUndefined TPrivateData = iota
 	TypeLoginPass
 	TypeText
 	TypeBinary
@@ -44,7 +45,7 @@ type RegistrationDTO struct {
 type BasePrivateDataDTO struct {
 	ID   uint32
 	Name string
-	Type PrivateDataType
+	Type TPrivateData
 	Meta string
 }
 

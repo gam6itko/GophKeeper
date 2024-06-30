@@ -26,7 +26,7 @@ func New(issuer *jwt.Issuer) *Interceptor {
 func (ths Interceptor) Intercept(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	// Login, Registration неу требует аутентификации по Token.
 	switch info.Server.(type) {
-	case service.AuthServerImpl:
+	case *service.AuthServerImpl:
 		return handler(ctx, req)
 	}
 
@@ -39,16 +39,16 @@ func (ths Interceptor) Intercept(ctx context.Context, req interface{}, info *grp
 		return nil, status.Errorf(codes.Unauthenticated, `Token not found`)
 	}
 
-	userID, err := ths.issuer.Parse(token[0])
+	claims, err := ths.issuer.Parse(token[0])
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, `Failed to extract user ID`)
+		return nil, status.Errorf(codes.Unauthenticated, err.Error())
 	}
 
 	ctx = metadata.NewIncomingContext(
 		ctx,
 		metadata.Join(md, metadata.MD{
 			"UserID": []string{
-				strconv.FormatUint(userID, 10),
+				strconv.FormatUint(claims.UserID, 10),
 			},
 		}),
 	)

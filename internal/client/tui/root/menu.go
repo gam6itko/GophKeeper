@@ -30,7 +30,7 @@ type (
 	privateLogoutMsg struct{}
 	// privateStoreStartMsg - начать процедуру ввода новых данных.
 	privateStoreStartMsg struct {
-		dataType server.PrivateDataType
+		dataType server.TPrivateData
 	}
 )
 

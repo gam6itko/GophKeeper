@@ -7,9 +7,9 @@ import (
 	"strconv"
 )
 
-var reCardNumber = regexp.MustCompile("^\\d{16}$")
-var reExpires = regexp.MustCompile("^\\d{2}/\\d{2}$")
-var reCVV = regexp.MustCompile("^\\d{3}$")
+var reCardNumber = regexp.MustCompile(`^\d{16}$`)
+var reExpires = regexp.MustCompile(`^\d{2}/\d{2}$`)
+var reCVV = regexp.MustCompile(`^\d{3}$`)
 
 // BankCardDTO структура для передачи на сервер.
 // todo для экономии места можно оперировать не строками а числами.

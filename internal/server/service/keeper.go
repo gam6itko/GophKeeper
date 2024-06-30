@@ -37,6 +37,10 @@ func (ths KeeperImpl) List(ctx context.Context, req *proto.ListRequest) (*proto.
 		errMessage := fmt.Sprintf("query rows error: %s", err)
 		return nil, status.Error(codes.Internal, errMessage)
 	}
+	if rows.Err() != nil {
+		log.Printf("ERROR. %s", rows.Err())
+		return nil, status.Error(codes.Internal, rows.Err().Error())
+	}
 
 	items := make([]*proto.PrivateData, 0)
 	for rows.Next() {

@@ -10,6 +10,7 @@ CREATE TABLE  IF NOT EXISTS `user_data`
 (
     `id`      int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `user_id` int unsigned NOT NULL,
+    `name`    varchar(100) NOT NULL,
     `type`    int unsigned NOT NULL,
     `data`    blob         NOT NULL,
     `meta`    text         NOT NULL,

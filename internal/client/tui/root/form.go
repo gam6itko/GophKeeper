@@ -167,8 +167,8 @@ func newStoreBankCardForm() tea.Model {
 	inputs := initCommonStoreInputs()
 
 	number := textinput.New()
-	number.Placeholder = "4505 **** **** 1234"
-	number.CharLimit = 20
+	number.Placeholder = "4505********1234"
+	number.CharLimit = 16
 	number.Width = 30
 	number.Validate = func(s string) error {
 		if len(s) > 16+3 {
@@ -191,7 +191,7 @@ func newStoreBankCardForm() tea.Model {
 	}
 
 	exp := textinput.New()
-	exp.Placeholder = "MM/YY "
+	exp.Placeholder = "MM/YY"
 	exp.CharLimit = 5
 	exp.Width = 5
 	exp.Validate = func(s string) error {

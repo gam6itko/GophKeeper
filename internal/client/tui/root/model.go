@@ -234,34 +234,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cancelFunc = nil
 
 		data := m.decodeData(msg.dto.Data)
-		buff := bytes.NewBuffer(data[3:])
+		buff := bytes.NewBuffer(data)
 		decoder := gob.NewDecoder(buff)
 
 		switch msg.dto.Type {
 		case server.TypeLoginPass:
-			dto := server.LoginPassDTO{}
-			err := decoder.Decode(&dto)
+			dataDTO := server.LoginPassDTO{}
+			err := decoder.Decode(&dataDTO)
 			if err != nil {
 				log.Fatalf("login pass decode error: %s", err)
 			}
 			m.current = info.NewModel(
 				map[string]string{
-					"login   ": dto.Login,
-					"password": dto.Password,
+					"name":     msg.dto.Name,
+					"meta":     msg.dto.Meta,
+					"login   ": dataDTO.Login,
+					"password": dataDTO.Password,
 				},
 				gotoPrivateMenuCmd,
 			)
 			return m, nil
 
 		case server.TypeText:
-			dto := server.TextDTO{}
-			err := decoder.Decode(&dto)
+			dataDTO := server.TextDTO{}
+			err := decoder.Decode(&dataDTO)
 			if err != nil {
 				log.Fatalf("text decode error: %s", err)
 			}
 			m.current = info.NewModel(
 				map[string]string{
-					"text": dto.Text,
+					"name": msg.dto.Name,
+					"meta": msg.dto.Meta,
+					"text": dataDTO.Text,
 				},
 				gotoPrivateMenuCmd,
 			)
@@ -270,20 +274,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Скачанные двоичные данные просто сохраняем в файл.
 		//todo дать пользователю возможность ввести название файла куда сор+хранить.
 		case server.TypeBinary:
-			dto := server.BinaryDTO{}
-			err := decoder.Decode(&dto)
+			dataDTO := server.BinaryDTO{}
+			err := decoder.Decode(&dataDTO)
 			if err != nil {
 				log.Fatalf("binary decode fail. %s", err)
 			}
 
 			f, err := os.CreateTemp("/tmp", "*.bin")
-			_, err = f.Write(dto.Data)
+			_, err = f.Write(dataDTO.Data)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			m.current = info.NewModel(
 				map[string]string{
+					"name":         msg.dto.Name,
+					"meta":         msg.dto.Meta,
 					"save to file": f.Name(),
 				},
 				gotoPrivateMenuCmd,
@@ -291,16 +297,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case server.TypeBankCard:
-			dto := server.BankCardDTO{}
-			err := decoder.Decode(&dto)
+			dataDTO := server.BankCardDTO{}
+			err := decoder.Decode(&dataDTO)
 			if err != nil {
 				log.Fatalf("bank card decode error: %s", err)
 			}
 			m.current = info.NewModel(
 				map[string]string{
-					"number ": dto.Number,
-					"expires": dto.Expires,
-					"cvv    ": dto.CVV,
+					"name":    msg.dto.Name,
+					"meta":    msg.dto.Meta,
+					"number ": dataDTO.Number,
+					"expires": dataDTO.Expires,
+					"cvv    ": dataDTO.CVV,
 				},
 				gotoPrivateMenuCmd,
 			)
@@ -343,6 +351,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, gotoPrivateMenuCmd
 
 	case privateStoreStartMsg:
+		// Проверяем есть ли мастер-ключ. Если нет, то просим ввести.
+		if !m.storage.Has() {
+			m.current = newMasterKeyForm(newCmd(msg), m.current)
+			return m, m.current.Init()
+		}
+
 		switch msg.dataType {
 		case server.TypeLoginPass:
 			return m, newGotoModelCmd(newStoreLoginPassForm(), stateStoreLoginPass)
@@ -437,7 +451,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Login:    msg.Values[idxLogin],
 				Password: msg.Values[idxPass],
 			}
-			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], dto)
+			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], server.TypeLoginPass, dto)
 
 		case form.CancelMsg:
 			return m, gotoPrivateMenuCmd
@@ -450,7 +464,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			dto := server.TextDTO{
 				Text: msg.Values[idxText],
 			}
-			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], dto)
+			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], server.TypeText, dto)
 
 		case form.CancelMsg:
 			return m, gotoPrivateMenuCmd
@@ -470,7 +484,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			dto := server.BinaryDTO{
 				Data: data,
 			}
-			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], dto)
+			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], server.TypeBinary, dto)
 
 		case form.CancelMsg:
 			return m, gotoPrivateMenuCmd
@@ -491,7 +505,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.current.Init()
 			}
 
-			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], dto)
+			return m.storeData(msg.Values[idxName], msg.Values[idxMeta], server.TypeBankCard, dto)
 
 		case form.CancelMsg:
 			return m, gotoPrivateMenuCmd
@@ -511,6 +525,21 @@ func (m Model) View() string {
 	return m.current.View()
 }
 
+func (m Model) encodeData(data []byte) []byte {
+	key, err := m.storage.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c := encrypt.NewAESCrypt()
+	result, err := c.Encrypt(key, data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return result
+}
+
 func (m Model) decodeData(data []byte) []byte {
 	key, err := m.storage.Load()
 	if err != nil {
@@ -526,30 +555,29 @@ func (m Model) decodeData(data []byte) []byte {
 	return result
 }
 
-func (m Model) storeData(name string, meta string, dto any) (tea.Model, tea.Cmd) {
+func (m Model) storeData(name string, meta string, dataType server.TPrivateData, dataDTO any) (tea.Model, tea.Cmd) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	m.cancelFunc = &cancelFunc
 
 	gotoModelFail := m.current
 	m.current = loading.New(
 		func() tea.Msg {
-			b := []byte(nil)
-			buff := bytes.NewBuffer(b)
+			buff := bytes.NewBuffer([]byte(nil))
 			encoder := gob.NewEncoder(buff)
-			err := encoder.Encode(dto)
+			err := encoder.Encode(dataDTO)
 			if err != nil {
 				log.Fatalf("login pass encode error: %s", err)
 			}
 
-			data := server.PrivateDataDTO{
+			dto := server.PrivateDataDTO{
 				BasePrivateDataDTO: server.BasePrivateDataDTO{
-					Type: server.TypeLoginPass,
+					Type: dataType,
 					Name: name,
 					Meta: meta,
 				},
-				Data: b,
+				Data: m.encodeData(buff.Bytes()),
 			}
-			err = m.server.Store(ctx, data)
+			err = m.server.Store(ctx, dto)
 			if err == nil {
 				//todo отображать сообщение можно покрасивее.
 				return gotoModelMsg{

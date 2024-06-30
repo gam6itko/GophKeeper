@@ -31,7 +31,7 @@ func WithExpiresIn(d time.Duration) IssuerOption {
 
 type Claims struct {
 	jwt.RegisteredClaims
-	UserID uint64
+	UserID uint64 `json:"uid"`
 }
 
 type Issuer struct {
@@ -74,7 +74,7 @@ func (ths Issuer) Issue(userID uint64) (tokenString string, err error) {
 	return
 }
 
-func (ths Issuer) Parse(tokenString string) (uint64, error) {
+func (ths Issuer) Parse(tokenString string) (*Claims, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(
 		tokenString,
@@ -84,12 +84,12 @@ func (ths Issuer) Parse(tokenString string) (uint64, error) {
 		},
 	)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	if !token.Valid {
-		return 0, errors.New("invalid token")
+		return nil, errors.New("invalid token")
 	}
 
-	return claims.UserID, nil
+	return claims, nil
 }
