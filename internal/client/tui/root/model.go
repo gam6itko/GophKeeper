@@ -5,7 +5,11 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
+	"log"
+	"os"
+
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey"
 	"github.com/gam6itko/goph-keeper/internal/client/masterkey/encrypt"
 	"github.com/gam6itko/goph-keeper/internal/client/server"
@@ -14,8 +18,6 @@ import (
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/info"
 	"github.com/gam6itko/goph-keeper/internal/client/tui/common/loading"
 	masterkey_form "github.com/gam6itko/goph-keeper/internal/client/tui/masterkey"
-	"log"
-	"os"
 )
 
 var buildVersion = "0.0.0"

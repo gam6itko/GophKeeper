@@ -1,0 +1,65 @@
+name: release
+
+on:
+  pull_request:
+
+  release: # Docs: <https://help.github.com/en/articles/events-that-trigger-workflows#release-event-release>
+    types:
+      - released
+      - prereleased
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }} (${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ linux, windows, darwin ]
+        arch: [ amd64, 386 ]
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Generate builder values
+        id: values
+        run: |
+          echo "version=$(echo ${GITHUB_REF##*/} | sed -e 's/^[vV ]*//')" >> $GITHUB_OUTPUT
+          echo "timestamp=$(echo $(date +%FT%T%z))" >> $GITHUB_OUTPUT
+          echo "binary-suffix=$(echo $(echo `[ ${{ matrix.os }} = 'windows' ] && echo '.exe'`))" >> $GITHUB_OUTPUT
+
+      - name: Compile binary file
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CLIENT_LDFLAGS: >-
+            -s
+            -X "github.com/gam6itko/goph-keeper/internal/client/tui/model.buildVersion=${{ steps.values.outputs.version }}
+            -X "github.com/gam6itko/goph-keeper/internal/client/tui/model.buildDate=${{ steps.values.outputs.timestamp }}
+        run: |
+          go build -ldflags "CLIENT_LDFLAGS" -o "./client_${{ steps.values.outputs.binary-suffix }}" ./cmd/client
+          go build -o "./server_${{ steps.values.outputs.binary-suffix }}" ./cmd/server
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.dist-dir.outputs.name }}
+          path: ${{ steps.dist-arch.outputs.name }}
+          if-no-files-found: error
+          retention-days: 30
+
+#      - name: Upload binaries to release
+#        uses: svenstaro/upload-release-action@v2
+#        with:
+#          repo_token: ${{ secrets.GITHUB_TOKEN }}
+#          file: ${{ steps.dist-arch.outputs.name }}
+#          asset_name: ${{ steps.dist-arch.outputs.name }}
+#          tag: ${{ github.ref }}
