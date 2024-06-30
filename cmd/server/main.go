@@ -48,6 +48,7 @@ func main() {
 	issuer := jwt.NewIssuer(
 		jwt.WithKey([]byte(cfg.JWT.Secret)),
 		jwt.WithExpiresIn(time.Duration(cfg.JWT.ExpiresInSeconds)*time.Second),
+		jwt.WithIssuer(cfg.JWT.Issuer),
 	)
 	// Создаём gRPC-сервер.
 	s := grpc.NewServer(

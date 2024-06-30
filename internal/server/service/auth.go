@@ -76,9 +76,10 @@ func (ths AuthServerImpl) Registration(ctx context.Context, req *proto.Registrat
 		return nil, status.Error(codes.InvalidArgument, "password is too short")
 	}
 
+	// Проверка на существование такого пользователя.
 	row := ths.db.QueryRowContext(
 		ctx,
-		"SELECT COUNT(1) FROM `user` WHERE `username` = ?",
+		"SELECT COUNT(1) AS cnt FROM `user` WHERE `username` = ?",
 		req.Username,
 	)
 	if row.Err() != nil {
@@ -86,7 +87,6 @@ func (ths AuthServerImpl) Registration(ctx context.Context, req *proto.Registrat
 		errMessage := fmt.Sprintf("query row error: %s", row.Err())
 		return nil, status.Error(codes.Internal, errMessage)
 	}
-
 	var cnt int
 	if err := row.Scan(&cnt); err != nil {
 		errMessage := fmt.Sprintf("scan row error: %s", row.Err())
@@ -97,6 +97,7 @@ func (ths AuthServerImpl) Registration(ctx context.Context, req *proto.Registrat
 		return nil, status.Error(codes.AlreadyExists, "user already exists")
 	}
 
+	// password hash
 	b, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		errMessage := fmt.Sprintf("password hash error: %s", row.Err())

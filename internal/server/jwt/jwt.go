@@ -6,29 +6,6 @@ import (
 	"time"
 )
 
-type options struct {
-	key       []byte
-	expiresIn time.Duration
-}
-
-type IssuerOption func(*options)
-
-func WithKey(key []byte) IssuerOption {
-	if key == nil {
-		panic("key must not be nil")
-	}
-
-	return func(o *options) {
-		o.key = key
-	}
-}
-
-func WithExpiresIn(d time.Duration) IssuerOption {
-	return func(o *options) {
-		o.expiresIn = d
-	}
-}
-
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID uint64 `json:"uid"`
@@ -42,6 +19,7 @@ func NewIssuer(opts ...IssuerOption) *Issuer {
 	o := options{
 		key:       []byte("secret_key"),
 		expiresIn: time.Hour,
+		issuer:    "server",
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -58,6 +36,7 @@ func (ths Issuer) Issue(userID uint64) (tokenString string, err error) {
 		jwt.SigningMethodHS256,
 		Claims{
 			RegisteredClaims: jwt.RegisteredClaims{
+				Issuer: ths.options.issuer,
 				IssuedAt: &jwt.NumericDate{
 					Time: time.Now().UTC(),
 				},

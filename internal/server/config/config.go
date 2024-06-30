@@ -9,6 +9,7 @@ import (
 type Config struct {
 	DatabaseDSN string `env:"DATABASE_DSN" envDefault:"root:root@tcp(localhost:3306)/goph_keeper?charset=utf8mb4"`
 	JWT         struct {
+		Issuer           string `env:"JWT_ISSUER" envDefault:"server"`
 		Secret           string `env:"JWT_SECRET" envDefault:"jwt_secret"`
 		ExpiresInSeconds uint32 `env:"JWT_EXPIRES_IN_SECONDS" envDefault:"3600"`
 	}

@@ -51,6 +51,8 @@ func New(inputs []textinput.Model, title string) Model {
 		inputs: inputs,
 		title:  title,
 
+		cursorMode: cursor.CursorBlink,
+
 		submitBtnIndex: l,
 		cancelBtnIndex: l + 1,
 	}
