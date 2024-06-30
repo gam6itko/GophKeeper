@@ -10,8 +10,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ linux, windows, darwin ]
-        arch: [ amd64, 386 ]
+        os: [ linux ]
+        arch: [ amd64 ]
+#      matrix:
+#        os: [ linux, windows, darwin ]
+#        arch: [ amd64, 386 ]
     steps:
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -29,7 +32,7 @@ jobs:
         run: |
           echo "version=$(echo ${GITHUB_REF##*/} | sed -e 's/^[vV ]*//')" >> $GITHUB_OUTPUT
           echo "timestamp=$(echo $(date +%FT%T%z))" >> $GITHUB_OUTPUT
-          echo "binary-suffix=$(echo $(echo `[ ${{ matrix.os }} = 'windows' ] && echo '.exe'`))" >> $GITHUB_OUTPUT
+          echo "binary-ext=$(echo $(echo `[ ${{ matrix.os }} = 'windows' ] && echo '.exe'`))" >> $GITHUB_OUTPUT
 
       - name: Compile binary file
         env:
@@ -40,8 +43,8 @@ jobs:
             -X "github.com/gam6itko/goph-keeper/internal/client/tui/model.buildVersion=${{ steps.values.outputs.version }}
             -X "github.com/gam6itko/goph-keeper/internal/client/tui/model.buildDate=${{ steps.values.outputs.timestamp }}
         run: |
-          go build -ldflags "$CLIENT_LDFLAGS" -o "./client_${{ steps.values.outputs.binary-suffix }}" ./cmd/client
-          go build -o "./server_${{ steps.values.outputs.binary-suffix }}" ./cmd/server
+          go build -ldflags "$CLIENT_LDFLAGS" -o "./client_${{ matrix.os }}_${{ matrix.arch }}${{ steps.values.outputs.binary-ext }}" ./cmd/client
+          go build -o "./server_${{ matrix.os }}_${{ matrix.arch }}${{ steps.values.outputs.binary-ext }}" ./cmd/server
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -50,11 +53,3 @@ jobs:
           path: ${{ steps.dist-arch.outputs.name }}
           if-no-files-found: error
           retention-days: 30
-
-#      - name: Upload binaries to release
-#        uses: svenstaro/upload-release-action@v2
-#        with:
-#          repo_token: ${{ secrets.GITHUB_TOKEN }}
-#          file: ${{ steps.dist-arch.outputs.name }}
-#          asset_name: ${{ steps.dist-arch.outputs.name }}
-#          tag: ${{ github.ref }}
