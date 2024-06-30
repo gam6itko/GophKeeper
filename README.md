@@ -2,6 +2,7 @@
 
 ЯндексПрактикум финальный проект. Когорта 25+
 
+[![build](https://github.com/gam6itko/GophKeeper/actions/workflows/build.yml/badge.svg)](https://github.com/gam6itko/GophKeeper/actions/workflows/build.yml)
 
 ## Описание проекта
 
