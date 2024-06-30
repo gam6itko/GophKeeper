@@ -39,7 +39,6 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CLIENT_LDFLAGS: >-
-            -s
             -X "github.com/gam6itko/goph-keeper/internal/client/tui/root/model.buildVersion=${{ steps.values.outputs.version }}
             -X "github.com/gam6itko/goph-keeper/internal/client/tui/root/model.buildDate=${{ steps.values.outputs.timestamp }}
         run: |
