@@ -1,23 +1,50 @@
-// Клиент должен реализовывать следующую бизнес-логику:
-//	- аутентификация и авторизация пользователей на удалённом сервере;
-//	- доступ к приватным данным по запросу.
+package main
 
-package client
+import (
+	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"log"
+	"os"
 
-//todo -help with version and build date
+	"github.com/gam6itko/goph-keeper/internal/client/config"
+	"github.com/gam6itko/goph-keeper/internal/client/masterkey"
+	"github.com/gam6itko/goph-keeper/internal/client/masterkey/encrypt"
+	grpcServer "github.com/gam6itko/goph-keeper/internal/client/server/grpc"
+	"github.com/gam6itko/goph-keeper/internal/client/tui/root"
+	"github.com/gam6itko/goph-keeper/proto"
+)
 
-// register
-// login
-// set master password
+func main() {
+	cfg := config.Load()
+	creds, err := credentials.NewClientTLSFromFile(cfg.GRPC.TLS.CertPEM, cfg.GRPC.TLS.ServerHost)
+	if err != nil {
+		log.Fatalf("failed to load credentials: %v", err)
+	}
+	// Устанавливаем соединение с сервером.
+	conn, err := grpc.NewClient(
+		cfg.GRPC.ServerAddr,
+		grpc.WithTransportCredentials(creds),
+	)
+	if err != nil {
+		log.Fatalf("failed start client: %v", err)
+	}
 
-// --- with meta information
-// save credentials
-// save text
-// save bin
-// save card
-// save the planet!
+	s := grpcServer.New(
+		proto.NewAuthClient(conn),
+		proto.NewKeeperClient(conn),
+	)
 
-// exit
+	memStorage := masterkey.NewMemGuardStorage()
+	crypt := encrypt.NewAESCrypt()
+	p := tea.NewProgram(
+		root.New(s, memStorage, crypt),
+		tea.WithAltScreen(),
+	)
 
-//todo обмен rsa ключами
-// store and sync
+	if _, err := p.Run(); err != nil {
+		fmt.Println("Error running program:", err)
+		os.Exit(1)
+	}
+}

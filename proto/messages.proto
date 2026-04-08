@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package goph_keeper;
+
+option go_package = "demo/proto";
+
+enum DataType {
+  Undefined = 0;
+  LoginPass = 1;
+  Text = 2;
+  Binary = 3;
+  BankCard = 4;
+}
+
+// Кратка информация об имеющихся на сервере записях для отображения списка.
+message PrivateDataListItem {
+  int32 id = 1;
+  DataType type = 2;
+  string name = 3;
+  string meta = 4;
+}
+
+// Данные отправленные или запрошенные пользователем.
+message PrivateData {
+  uint32 id = 1;
+  DataType type = 2;
+  string name = 3;
+  string meta = 4;
+  bytes data = 5;
+}
+
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  // токен для авторизации
+  string token = 1;
+}
+
+
+message RegistrationRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message RegistrationResponse {
+}
+
+
+message ListRequest {
+}
+
+message ListResponse{
+  repeated PrivateData list = 1;
+}
+
+
+message StoreRequest {
+  PrivateData item = 1;
+}
+
+message StoreResponse {
+  uint32 id = 1;
+}
+
+
+message LoadRequest {
+  uint32 id = 1;
+}
+
+message LoadResponse {
+  PrivateData item = 1;
+}
+
+
+service Auth {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Registration(RegistrationRequest) returns (RegistrationResponse);
+}
+
+service Keeper {
+  rpc List(ListRequest) returns (ListResponse);
+  rpc Load(LoadRequest) returns (LoadResponse);
+  rpc Store(StoreRequest) returns (StoreResponse);
+}
